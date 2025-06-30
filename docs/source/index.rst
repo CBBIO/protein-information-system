@@ -81,3 +81,5 @@ Faq
    :caption:  Guides
 
    lookup_table_generation
+   adding_embedding_models
+
