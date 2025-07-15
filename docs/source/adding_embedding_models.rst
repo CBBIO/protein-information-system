@@ -111,7 +111,7 @@ The logic is orchestrated from:
 
     SequenceEmbeddingManager(conf).start()
 
-This class loads all active `embedding_type_id`s and executes:
+This class loads all active ``embedding_type_ids`` and executes:
 
 - `enqueue()` → batching and task creation
 - `process()` → model inference
