@@ -1,6 +1,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/protein-information-system)](https://pypi.org/project/protein-information-system/)
 [![Documentation Status](https://readthedocs.org/projects/protein-information-system/badge/?version=latest)](https://protein-information-system.readthedocs.io/en/latest/?badge=latest)
 ![Linting Status](https://github.com/CBBIO/protein-information-system/actions/workflows/test-lint.yml/badge.svg?branch=main)
+[![codecov](https://codecov.io/gh/CBBIO/protein-information-system/branch/main/graph/badge.svg)](https://codecov.io/gh/CBBIO/protein-information-system)
 
 # **Protein Information System (PIS)**
 
