@@ -20,8 +20,10 @@ from protein_information_system.sql.model.entities.structure.structure import St
 class TestSequenceEmbeddingManager(unittest.TestCase):
 
     def setUp(self):
-        config_path = self.get_config_path()
+        config_path = os.path.join('protein_information_system/config/', "config.yaml")
         config = read_yaml_config(config_path)
+        constants_path = os.path.join('protein_information_system/config/', "constants.yaml")
+        config['constants'] = constants_path
         self.embedder = SequenceEmbeddingManager(config)
 
     def get_config_path(self):
