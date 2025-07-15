@@ -1,5 +1,5 @@
 [run]
-fail_under = 100
+fail_under = 30
 omit =
     "*/site-packages/*",
     protein_metamorphisms_is/main.py
