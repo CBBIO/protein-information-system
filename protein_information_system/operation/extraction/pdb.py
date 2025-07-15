@@ -166,11 +166,12 @@ class PDBExtractor(QueueTaskInitializer):
                         continue
 
                     sequence = ''.join(gemmi.find_tabulated_residue(res.name).one_letter_code for res in clean_chain)
-                    clean_file_path = os.path.join(self.models_directory, f"{pdb_id}_{chain.name}_{model.name}.cif")
+                    print(model.num)
+                    clean_file_path = os.path.join(self.models_directory, f"{pdb_id}_{chain.name}_{model.num}.cif")
 
                     # Guardar la estructura limpia
                     clean_structure = gemmi.Structure()
-                    clean_model = gemmi.Model(model.name)
+                    clean_model = gemmi.Model(model.num)
                     clean_model.add_chain(clean_chain)
                     clean_structure.add_model(clean_model)
                     clean_structure.make_mmcif_document().write_file(clean_file_path)
@@ -184,11 +185,11 @@ class PDBExtractor(QueueTaskInitializer):
                         "chain_id": chain.name,
                         "sequence": sequence,
                         "file_path": clean_file_path,
-                        "model": model.name,
+                        "model": str(model.num),
                         "accession": chain_to_accession_map.get(chain.name)
                     })
 
-                    self.logger.info(f"Saved cleaned chain {chain.name} of model {model.name} to {clean_file_path}")
+                    self.logger.info(f"Saved cleaned chain {chain.name} of model {model.num} to {clean_file_path}")
 
         except Exception as e:
             self.logger.error(f"Error processing PDB {pdb_id}: {e}\n{traceback.format_exc()}")
