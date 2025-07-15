@@ -91,46 +91,6 @@ file_format: "mmCif"
 # Path to the constants configuration file.
 constants: "config/constants.yaml"
 
-# 🌳 Sequence Clustering
-## Temporal files that will be created, check that the directories path exists
-fasta_path: "~/data/complete.fasta"
-cdhit_out_path: "~/data/cd_hitout"
-
-## Sequence Clustering
-# Identity threshold for sequence clustering
-sequence_identity_threshold: 0.98
-
-# Minimum alignment coverage for sequence clustering
-alignment_coverage: 0.95
-
-## Structural Subclustering
-# Identity threshold for structural subclustering
-structural_identity_threshold: 0.65
-
-# Minimum alignment coverage for structural subclustering
-structural_alignment_coverage: 0.95
-
-#Maximum memory usage for CD-HIT
-memory_usage: 25000
-
-#Boolean value to enable/disable most representative search
-most_representative_search: 1
-
-# 🔧 Structural Alignment
-structural_alignment:
-  types:
-    - 1
-    - 2
-    - 3
-    - 4
-
-  retry_timeout: 1
-  retry_count: 5
-  batch_size: 1
-  batch_size_3di: 1000
-  task_timeout: 20
-
-
 # 🧬 Embedding
 embedding:
   device: "cuda"
@@ -140,23 +100,15 @@ embedding:
     - 1 # ESM
     - 2 # ProstT5
     - 3 # ProtT5
-    - 4
+    - 4 # Ankh
 
   # Queue according to this batch size.
   batch_size: 1
 
-  # Batch size to feed models.
-  batch_size_embedding: 1
-
 # 🧠 GO Metrics
-#Paths to OBO and GAF files.
-obo: '../data/go-basic.obo'
-go_annotation_file: '../data/cgd.gaf'
-
 # Specifies the list of UniProt evidence codes used to filter annotations. set empty list for all evidences. []
 allowed_evidences: []
 
 
 
 
-k: 5
