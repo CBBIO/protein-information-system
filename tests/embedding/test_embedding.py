@@ -24,6 +24,9 @@ class TestSequenceEmbeddingManager(unittest.TestCase):
         config = read_yaml_config(config_path)
         constants_path = os.path.join('protein_information_system/config/', "constants.yaml")
         config['constants'] = constants_path
+        config['embedding']['device'] = 'cpu'
+        config['limit_execution'] = 2
+
         self.embedder = SequenceEmbeddingManager(config)
 
     def get_config_path(self):
