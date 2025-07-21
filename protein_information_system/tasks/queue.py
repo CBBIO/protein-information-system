@@ -51,7 +51,7 @@ class QueueTaskInitializer(BaseTaskInitializer):
         self.connection_params = pika.ConnectionParameters(
             host=self.conf['rabbitmq_host'],
             port=self.conf.get('rabbitmq_port', 5672),
-            heartbeat=900,
+            heartbeat=0,
             credentials=PlainCredentials(
                 self.conf['rabbitmq_user'],
                 self.conf['rabbitmq_password']
