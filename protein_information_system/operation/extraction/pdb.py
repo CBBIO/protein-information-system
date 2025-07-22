@@ -166,7 +166,6 @@ class PDBExtractor(QueueTaskInitializer):
                         continue
 
                     sequence = ''.join(gemmi.find_tabulated_residue(res.name).one_letter_code for res in clean_chain)
-                    print(model.num)
                     clean_file_path = os.path.join(self.models_directory, f"{pdb_id}_{chain.name}_{model.num}.cif")
 
                     # Guardar la estructura limpia

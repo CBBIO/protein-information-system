@@ -13,7 +13,9 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 RUN pip3 install --upgrade pip
-RUN pip3 install  protein-metamorphisms-is
+RUN pip3 install  protein-information-system
+RUN pip3 install flash-attn --no-build-isolation
+
 
 
 # Configura el comando predeterminado para ejecutar tu paquete

@@ -94,13 +94,13 @@ constants: "config/constants.yaml"
 # 🧬 Embedding
 embedding:
   device: "cuda"
-  use_fp16: True
   # List of embedding types to compute (Comment with # at the beginning to de/activate).
   types:
-    - 1 # ESM
-    - 2 # ProstT5
-    - 3 # ProtT5
-    - 4 # Ankh
+#    - 1 # ESM2 (facebook/esm2_t33_650M_UR50D) – 650M parameter encoder-only transformer trained with masked language modeling on UniRef50
+#    - 2 # ProstT5 (Rostlab/ProstT5) – ∼1.2B parameter encoder-decoder model trained for multi-modal protein representation including 3Di structure
+#    - 3 # ProtT5 (Rostlab/prot_t5_xl_uniref50) – ∼1.2B parameter T5-based model pretrained on UniRef50 using span masking
+#    - 4 # Ankh3-Large (ElnaggarLab/ankh3-large) – 620M parameter encoder-only T5-style model with [NLU] prefix for efficient semantic/structural embeddings
+    - 5 # ESM3c (esmc_600m) – 600M parameter masked language model (Transformer with rotary embeddings and SwiGLU) trained on UniRef, MGnify, and JGI datasets
 
   # Queue according to this batch size.
   batch_size: 1

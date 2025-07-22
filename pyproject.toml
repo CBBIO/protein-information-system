@@ -22,6 +22,8 @@ pandas = "^2.2.3"
 sentencepiece = "^0.2.0"
 transformers = "^4.48.1"
 bio = "^1.8.0"
+esm = "^3.2.1"
+flash-attn = "*"
 
 
 

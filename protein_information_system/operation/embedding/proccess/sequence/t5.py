@@ -5,7 +5,8 @@ import torch
 
 def load_model(model_name, conf):
     device = torch.device(conf['embedding'].get('device', "cuda"))
-    return T5EncoderModel.from_pretrained(model_name).to(device)
+    dtype = torch.float16 if device.type == "cuda" else torch.float32
+    return T5EncoderModel.from_pretrained(model_name, torch_dtype=dtype).to(device)
 
 
 def load_tokenizer(model_name):
@@ -13,8 +14,6 @@ def load_tokenizer(model_name):
 
 
 def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding_type_id=None):
-    model.to(device)
-    model.eval()
     embedding_records = []
 
     # Preprocess sequences
@@ -36,8 +35,7 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding
         inputs = tokenizer.batch_encode_plus(
             [seq["processed_sequence"] for seq in batch_sequences],
             padding="longest",
-            truncation=True,
-            max_length=512,
+            truncation=False,
             add_special_tokens=True,
             return_tensors="pt"
         ).to(device)
@@ -45,16 +43,19 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding
         with torch.no_grad():
             try:
                 outputs = model(input_ids=inputs.input_ids, attention_mask=inputs.attention_mask)
-                embeddings = outputs.last_hidden_state.mean(dim=1)
+                embeddings = outputs.last_hidden_state
 
                 # Collect embeddings for the batch
                 for idx, seq in enumerate(batch_sequences):
+                    length = inputs.attention_mask[idx].sum().item() - 2
+                    mean_embedding = embeddings[idx, 1:1 + length].mean(dim=0)
+
                     record = {
                         "sequence_id": seq["sequence_id"],  # Include sequence_id
                         "embedding_type_id": embedding_type_id,  # Include embedding_type_id
                         "sequence": sequences[i + idx]["sequence"],  # Original sequence
-                        "embedding": embeddings[idx].cpu().numpy().tolist(),  # Embedding vector
-                        "shape": embeddings[idx].shape
+                        "embedding": mean_embedding.cpu().numpy().tolist(),  # Embedding vector
+                        "shape": mean_embedding.shape
                     }
                     embedding_records.append(record)
 
