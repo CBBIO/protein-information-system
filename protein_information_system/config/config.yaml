@@ -54,7 +54,7 @@ delete_queues: True
 # ===================================
 
 ## Load Accessions.
-tag: 'METAMORPHISM' # Identifier tag for accession loading.
+tag: 'GOA_JULY_2025' # Identifier tag for accession loading.
 
 # 📗 Load from CSV.
 # Path to the CSV file containing accessions.
@@ -65,9 +65,9 @@ load_accesion_column: uniprot_id
 
 # 🔬 Fetch from the UniProt API.
 # Query string for UniProt search.
-#search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
+search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
 # Query string for Protein Data Bank search.
-search_criteria: '(structure_3d:true)'
+#search_criteria: '(structure_3d:true)'
 
 
 # Number of results to fetch from UniProt (pagination).
@@ -96,10 +96,10 @@ embedding:
   device: "cuda"
   # List of embedding types to compute (Comment with # at the beginning to de/activate).
   types:
-#    - 1 # ESM2 (facebook/esm2_t33_650M_UR50D) – 650M parameter encoder-only transformer trained with masked language modeling on UniRef50
-#    - 2 # ProstT5 (Rostlab/ProstT5) – ∼1.2B parameter encoder-decoder model trained for multi-modal protein representation including 3Di structure
-#    - 3 # ProtT5 (Rostlab/prot_t5_xl_uniref50) – ∼1.2B parameter T5-based model pretrained on UniRef50 using span masking
-#    - 4 # Ankh3-Large (ElnaggarLab/ankh3-large) – 620M parameter encoder-only T5-style model with [NLU] prefix for efficient semantic/structural embeddings
+    - 1 # ESM2 (facebook/esm2_t33_650M_UR50D) – 650M parameter encoder-only transformer trained with masked language modeling on UniRef50
+    - 2 # ProstT5 (Rostlab/ProstT5) – ∼1.2B parameter encoder-decoder model trained for multi-modal protein representation including 3Di structure
+    - 3 # ProtT5 (Rostlab/prot_t5_xl_uniref50) – ∼1.2B parameter T5-based model pretrained on UniRef50 using span masking
+    - 4 # Ankh3-Large (ElnaggarLab/ankh3-large) – 620M parameter encoder-only T5-style model with [NLU] prefix for efficient semantic/structural embeddings
     - 5 # ESM3c (esmc_600m) – 600M parameter masked language model (Transformer with rotary embeddings and SwiGLU) trained on UniRef, MGnify, and JGI datasets
 
   # Queue according to this batch size.
