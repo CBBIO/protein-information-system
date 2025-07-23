@@ -1,0 +1,37 @@
+# Basura de entorno local
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+
+# Carpetas pesadas
+~/data/
+protein_information_system/~/data/
+data/
+logs/
+binaries/
+docs/build/
+docs/source/_static/
+docs/source/deployment/
+docs/source/tasks/
+docs/source/operation/
+
+# Git y editor
+.git/
+.idea/
+.vscode/
+.pytest_cache/
+coverage.xml
+htmlcov/
+.cache/
+.mypy_cache/
+.tox/
+
+# Tests y notebooks (si no necesarios en prod)
+tests/
+*.ipynb
