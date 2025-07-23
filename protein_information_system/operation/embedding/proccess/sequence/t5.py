@@ -6,7 +6,7 @@ import torch
 def load_model(model_name, conf):
     device = torch.device(conf['embedding'].get('device', "cuda"))
     dtype = torch.float16 if device.type == "cuda" else torch.float32
-    return T5EncoderModel.from_pretrained(model_name,torch_dtype=dtype).to(device)
+    return T5EncoderModel.from_pretrained(model_name, torch_dtype=dtype).to(device)
 
 
 def load_tokenizer(model_name):
@@ -44,8 +44,6 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding
             try:
                 outputs = model(input_ids=inputs.input_ids, attention_mask=inputs.attention_mask)
                 embeddings = outputs.last_hidden_state.mean(dim=1)
-
-
 
                 # Collect embeddings for the batch
                 for idx, seq in enumerate(batch_sequences):

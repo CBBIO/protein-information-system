@@ -68,7 +68,6 @@ def embedding_task(sequences, model, tokenizer, device, embedding_type_id=None):
             sequence = seq_info["sequence"]
             sequence_id = seq_info.get("sequence_id")
 
-
             try:
                 protein = ESMProtein(sequence=sequence)
                 protein_tensor = model.encode(protein)
@@ -78,7 +77,7 @@ def embedding_task(sequences, model, tokenizer, device, embedding_type_id=None):
                     LogitsConfig(sequence=True, return_embeddings=True, )
                 )
 
-                emb = logits_output.embeddings[0,1:-1].mean(dim=0)  # [L, D] → [D]
+                emb = logits_output.embeddings[0, 1:-1].mean(dim=0)  # [L, D] → [D]
 
                 record = {
                     "sequence_id": sequence_id,
