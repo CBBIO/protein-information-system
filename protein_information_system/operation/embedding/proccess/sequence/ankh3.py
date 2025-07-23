@@ -25,9 +25,9 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=8, embedding_
         inputs = tokenizer.batch_encode_plus(
             protein_sequences,
             add_special_tokens=True,
-            return_tensors="pt",
-            padding=True,
+            padding="longest",
             truncation=False,
+            return_tensors="pt",
         ).to(device)
 
         with torch.no_grad():
@@ -49,7 +49,8 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=8, embedding_
                     embedding_records.append(record)
 
             except Exception as e:
-                print(f"⚠️ Error en batch {i // batch_size}: {e}")
+                print(f"Error processing batch {i // batch_size}: {e}")
+                torch.cuda.empty_cache()
                 continue
 
     return embedding_records

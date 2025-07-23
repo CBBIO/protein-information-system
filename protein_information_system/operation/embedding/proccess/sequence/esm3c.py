@@ -91,6 +91,7 @@ def embedding_task(sequences, model, tokenizer, device, embedding_type_id=None):
 
             except Exception as e:
                 print(f"❌ Failed to process sequence {sequence_id}: {e}")
+                torch.cuda.empty_cache()
                 continue
 
     return embedding_records

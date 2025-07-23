@@ -34,7 +34,7 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding
             sequence = seq_info["sequence"]
             sequence_id = seq_info.get("sequence_id")
 
-            tokens = tokenizer(sequence, return_tensors="pt", truncation=False, padding="max_length")
+            tokens = tokenizer(sequence, return_tensors="pt", truncation=False, padding="longest")
             tokens = {k: v.to(device) for k, v in tokens.items()}
 
             try:
@@ -53,6 +53,7 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding
                 embedding_records.append(record)
             except Exception as e:
                 print(f"Failed to process sequence {sequence_id}: {e}")
+                torch.cuda.empty_cache()
                 continue
 
     return embedding_records
