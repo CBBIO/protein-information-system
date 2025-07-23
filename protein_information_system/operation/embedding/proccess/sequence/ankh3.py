@@ -1,7 +1,5 @@
 from transformers import T5Tokenizer, T5EncoderModel
 import torch
-import numpy as np
-import gc
 
 
 def load_model(model_name, conf):
