@@ -1,22 +1,43 @@
-# Usa la imagen más reciente de NVIDIA CUDA con Ubuntu 22.04
-FROM nvidia/cuda:12.3.0-runtime-ubuntu22.04
+FROM python:3.12-slim
 
-# Establece el directorio de trabajo
-WORKDIR /app
-
-
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    pkg-config \
+    git \
+    wget \
+    gnupg \
+    lsb-release \
+    ca-certificates \
+    && echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && wget -qO - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client-16 \
+        mmseqs2 \
     && rm -rf /var/lib/apt/lists/*
 
+
+# Install Poetry
+ENV POETRY_VERSION=1.8.2
+
+RUN pip install "poetry==$POETRY_VERSION"
+
+
+# Set working directory
+WORKDIR /app
+
+# Copy project metadata
+COPY pyproject.toml poetry.lock ./
+
+# Primero copia
 COPY . .
 
-RUN pip3 install --upgrade pip
-RUN pip3 install  protein-information-system
-RUN pip3 install flash-attn --no-build-isolation
+# Luego instala
+RUN poetry config virtualenvs.create false \
+ && poetry install --no-dev \
+ && rm -rf /root/.cache/pypoetry ...
 
 
-
-# Configura el comando predeterminado para ejecutar tu paquete
-CMD ["python3", "-m", "protein_information_system"]
+# Default command
+ENTRYPOINT ["pis"]
