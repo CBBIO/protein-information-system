@@ -24,9 +24,9 @@ def main(config_path='config/config.yaml'):
     from protein_information_system.sql.model.model import (
         AccessionManager,
         UniProtExtractor,
-        # PDBExtractor,
+        PDBExtractor,
         SequenceEmbeddingManager,
-        # Structure3DiManager
+        Structure3DiManager
     )
 
     # Step 2: Check services running
@@ -36,9 +36,9 @@ def main(config_path='config/config.yaml'):
     # Step 3: Run components
     AccessionManager(conf).fetch_accessions_from_api()
     UniProtExtractor(conf).start()
-    # PDBExtractor(conf).start()
+    PDBExtractor(conf).start()
     SequenceEmbeddingManager(conf).start()
-    # Structure3DiManager(conf).start()
+    Structure3DiManager(conf).start()
 
 
 if __name__ == '__main__':
