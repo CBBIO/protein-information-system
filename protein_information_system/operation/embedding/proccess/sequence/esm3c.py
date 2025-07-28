@@ -36,7 +36,7 @@ def load_tokenizer(model_name=None):
     return None
 
 
-def embedding_task(sequences, model, tokenizer, device, embedding_type_id=None):
+def embedding_task(sequences, model, tokenizer, device, batch_size="NOT_SUPPORTED", embedding_type_id=None):
     """
     Computes per-sequence embeddings using the ESM-3c model.
 
