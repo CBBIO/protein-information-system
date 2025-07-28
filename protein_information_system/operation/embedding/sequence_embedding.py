@@ -183,7 +183,12 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
             batch_size = self.types[model_type]["batch_size"]
 
             embedding_records = module.embedding_task(
-                batch_data, model, tokenizer, batch_size, embedding_type_id=embedding_type_id, device=device
+                sequences=batch_data,
+                model=model,
+                tokenizer=tokenizer,
+                device=device,
+                batch_size=batch_size,
+                embedding_type_id=embedding_type_id
             )
 
             return embedding_records
