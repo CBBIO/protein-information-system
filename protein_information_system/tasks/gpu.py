@@ -107,8 +107,8 @@ class GPUTaskInitializer(QueueTaskInitializer):
             self.channel = self.connection.channel()
 
             # Declare queues for each embedding type
-            for model_type in self.conf['embedding']['types']:
-                queue_name = f"{self.computing_queue}_{model_type}"
+            for model in self.conf['embedding']['models']:
+                queue_name = f"{self.computing_queue}_{model}"
                 self.channel.queue_declare(queue=queue_name)
             self.channel.queue_declare(queue=self.inserting_queue)
 
@@ -139,8 +139,9 @@ class GPUTaskInitializer(QueueTaskInitializer):
             self.threads.append(monitor_thread)
 
             # Start the processing for each model type sequentially
-            for model_type in self.conf['embedding']['types']:
-                self.run_processor_worker_sequential(model_type)
+            for model, config in self.conf['embedding']['models'].items():
+                if config.get('enabled'):
+                    self.run_processor_worker_sequential(model)
 
             db_inserter_process.join()
 
@@ -170,7 +171,7 @@ class GPUTaskInitializer(QueueTaskInitializer):
             model_type (str): The type of GPU model to be used for processing.
         """
         last_model_type = None  # Track the last model type loaded
-        with self._create_rabbitmq_connection() as channel:
+        with self.create_rabbitmq_connection().channel() as channel:
             queue_name = f"{self.computing_queue}_{model_type}"
             channel.basic_qos(prefetch_count=1)
             while not self.stop_event.is_set():
@@ -236,22 +237,6 @@ class GPUTaskInitializer(QueueTaskInitializer):
             self.setup_rabbitmq()
         queue_name = f"{self.computing_queue}_{model_type}"
         self.channel.basic_publish(exchange='', routing_key=queue_name, body=batch_data)
-
-    def _create_rabbitmq_connection(self):
-        """
-        Create a connection to RabbitMQ for GPU tasks.
-
-        This method establishes a connection to RabbitMQ using the provided
-        connection parameters.
-
-        Returns:
-            pika.channel.Channel: The RabbitMQ channel for processing tasks.
-        """
-        credentials = PlainCredentials(self.conf['rabbitmq_user'], self.conf['rabbitmq_password'])
-        connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=self.conf['rabbitmq_host'], credentials=credentials))
-        channel = connection.channel()
-        return channel
 
     # Abstract methods inherited from QueueTaskInitializer
     @abstractmethod

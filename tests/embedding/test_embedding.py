@@ -16,6 +16,7 @@ from protein_information_system.sql.model.entities.protein.protein import Protei
 from protein_information_system.sql.model.entities.sequence.sequence import Sequence
 from protein_information_system.sql.model.entities.structure.structure import Structure
 
+
 @pytest.mark.order(4)
 class TestSequenceEmbeddingManager(unittest.TestCase):
 
@@ -25,11 +26,28 @@ class TestSequenceEmbeddingManager(unittest.TestCase):
         constants_path = os.path.join('protein_information_system/config/', "constants.yaml")
         config['constants'] = constants_path
         config['embedding']['device'] = 'cpu'
-        config['embedding']['types'] = [1]
         config['limit_execution'] = 5
 
+        config['embedding']['models'] = {
+            "ESM": {"enabled": True, "batch_size": 1},
+            "Prost-T5": {"enabled": False, "batch_size": 1},
+            "Prot-T5": {"enabled": False, "batch_size": 1},
+            "Ankh3-Large": {"enabled": False, "batch_size": 1},
+            "ESM3c": {"enabled": False, "batch_size": 1},
+        }
 
         self.embedder = SequenceEmbeddingManager(config)
+
+        # 🛠️ Sobrescribe el model_name en BD para ESM
+        self.embedder.session_init()
+        esm_type = self.embedder.session.query(SequenceEmbeddingType).filter_by(name="ESM").first()
+        if esm_type:
+            esm_type.model_name = "facebook/esm2_t6_8M_UR50D"
+            self.embedder.session.commit()
+        self.embedder.session.close()
+
+        self.embedder = SequenceEmbeddingManager(config)
+
 
     def get_config_path(self):
         """Devuelve la ruta al archivo de configuración."""
@@ -59,8 +77,6 @@ class TestSequenceEmbeddingManager(unittest.TestCase):
 
         # Cerrar la sesión después de las verificaciones
         self.embedder.session.close()
-
-
 
     if __name__ == '__main__':
         unittest.main()

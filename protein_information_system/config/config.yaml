@@ -12,7 +12,7 @@ binaries_path: '../binaries'
 monitor_interval: 10 # ⚠️ IMPORTANT: Low values as 1 can cause execution problems.
 
 # Path to save logs, set False to disable the option
-log_path: '~/data/logs/'
+log_path: '~/data/logs'
 
 # ======================================
 # 🗄️ Database Configuration (PostgreSQL)
@@ -43,7 +43,7 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # ==========================
 
 # Maximum number of items to process (for debugging).
-limit_execution: 100 # False for complete run.
+limit_execution: 30 # False for complete run.
 
 # Reset queues with each execution.
 delete_queues: True
@@ -54,7 +54,7 @@ delete_queues: True
 # ===================================
 
 ## Load Accessions.
-tag: 'METAMORPHISM' # Identifier tag for accession loading.
+tag: 'METAMORPH' # Identifier tag for accession loading.
 
 # 📗 Load from CSV.
 # Path to the CSV file containing accessions.
@@ -65,9 +65,9 @@ load_accesion_column: uniprot_id
 
 # 🔬 Fetch from the UniProt API.
 # Query string for UniProt search.
-#search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
+search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
 # Query string for Protein Data Bank search.
-search_criteria: '(structure_3d:true)'
+#search_criteria: '(structure_3d:true)'
 
 
 # Number of results to fetch from UniProt (pagination).
@@ -93,21 +93,43 @@ constants: "config/constants.yaml"
 
 # 🧬 Embedding
 embedding:
-  device: "cuda"
-  use_fp16: True
-  # List of embedding types to compute (Comment with # at the beginning to de/activate).
-  types:
-    - 1 # ESM
-    - 2 # ProstT5
-    - 3 # ProtT5
-    - 4 # Ankh
+  device: cuda
+  queue_batch_size: 10
+  max_sequence_length: 1556
 
-  # Queue according to this batch size.
-  batch_size: 1
+  models:
+    ESM:
+      enabled: true
+      batch_size: 1
+
+    Prost-T5:
+      enabled: true
+      batch_size: 1
+
+    Prot-T5:
+      enabled: true
+      batch_size: 1
+
+    Ankh3-Large:
+      enabled: true
+      batch_size: 1
+
+    ESM3c:
+      enabled: true
+      batch_size: 1
+
 
 # 🧠 GO Metrics
 # Specifies the list of UniProt evidence codes used to filter annotations. set empty list for all evidences. []
-allowed_evidences: []
+allowed_evidences:
+  - EXP # Inferred from Experiment.
+  - IDA # Inferred from Direct Assay.
+  - IPI # Inferred from Physical Interaction.
+  - IMP # Inferred from Mutant Phenotype.
+  - IGI # Inferred from Genetic Interaction.
+  - IEP # Inferred from Expression Pattern.
+  - TAS # Traceable Author Statement.
+  - IC # Inferred by Curator.
 
 
 

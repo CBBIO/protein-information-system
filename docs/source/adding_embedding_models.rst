@@ -80,7 +80,6 @@ In your main config file (e.g., `config.yaml`), register the model ID under `emb
       batch_size: 1
       batch_size_embedding: 1
       device: cuda
-      use_fp16: true
 
 4. Execute the Pipeline
 ^^^^^^^^^^^^^^^^^^^^^^^

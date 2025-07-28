@@ -11,7 +11,7 @@ def load_tokenizer(model_name):
     return AutoTokenizer.from_pretrained(model_name)
 
 
-def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding_type_id=None):
+def embedding_task(sequences, model, tokenizer, device, batch_size="NOT_SUPPORTED", embedding_type_id=None):
     """
     Processes sequences to generate embeddings.
 
@@ -34,26 +34,26 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=32, embedding
             sequence = seq_info["sequence"]
             sequence_id = seq_info.get("sequence_id")
 
-            tokens = tokenizer(sequence, return_tensors="pt", truncation=True, padding="max_length", max_length=512)
+            tokens = tokenizer(sequence, return_tensors="pt", truncation=False, padding="longest")
             tokens = {k: v.to(device) for k, v in tokens.items()}
 
             try:
                 outputs = model(**tokens)
-                embeddings = outputs.last_hidden_state.mean(dim=1)
-                embedding_shape = embeddings.shape
+                residue_embeddings = outputs.last_hidden_state[0, 1:-1]  # [L, 1280]
+                mean_embedding = residue_embeddings.mean(dim=0)  # → [1280]
 
-                # Prepare the record
                 record = {
                     'sequence_id': sequence_id,  # Include sequence_id
                     'embedding_type_id': embedding_type_id,  # Include embedding_type_id
                     'sequence': sequence,
-                    'embedding': embeddings.cpu().numpy().tolist()[0],
-                    'shape': embedding_shape
+                    'embedding': mean_embedding.cpu().numpy().tolist(),
+                    'shape': mean_embedding.shape
                 }
 
                 embedding_records.append(record)
             except Exception as e:
                 print(f"Failed to process sequence {sequence_id}: {e}")
+                torch.cuda.empty_cache()
                 continue
 
     return embedding_records

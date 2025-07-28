@@ -9,7 +9,8 @@ def setup_logger(name, log_dir):
     logger.propagate = False
 
     if log_dir and not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+        log_dir = os.path.expanduser(log_dir)
+        os.makedirs(log_dir, exist_ok=True)
 
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 

@@ -1,6 +1,12 @@
 import logging
 
 from protein_information_system.helpers.services.services import check_services
+import os
+import sys
+
+module_dir = os.path.abspath(os.path.dirname(__file__))
+os.chdir(module_dir)
+sys.path.insert(0, module_dir)
 
 
 def main(config_path='config/config.yaml'):
