@@ -34,7 +34,7 @@ The primary goal of PIS is to provide a robust framework for large-scale protein
 
 ## **Prerequisites**
 
-- Python 3.11.6
+- Python 3.10^
 - RabbitMQ
 - PostgreSQL with pgVector extension installed.
 
@@ -51,15 +51,12 @@ Ensure PostgreSQL and RabbitMQ services are running.
 
 ```bash
 docker run -d --name pgvectorsql \
-    --shm-size=1g \
     -e POSTGRES_USER=usuario \
     -e POSTGRES_PASSWORD=clave \
     -e POSTGRES_DB=BioData \
     -p 5432:5432 \
     pgvector/pgvector:pg16 
 ```
-> ⚠️ Set `--shm-size=1g` or higher to avoid performance issues.
-
 
 
 ### 4. (Optional) Connect to the Database
@@ -85,10 +82,10 @@ Once RabbitMQ is running, you can access its management interface at [RabbitMQ M
 
 ## **Get started:**
 
-To execute the full extraction process, simply run:
+To execute the full extraction process, install dependencies and run:
 
 ```bash
-python main.py
+python3 protein_information_system/main.py
 ```
 
 This command will trigger the complete workflow, starting from the initial data preprocessing stages and continuing through to the final data organization and storage.
