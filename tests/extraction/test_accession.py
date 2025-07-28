@@ -14,6 +14,7 @@ class TestAccessionManager(unittest.TestCase):
     def setUp(self):
         config_path = os.path.join('protein_information_system/config/', "config.yaml")
         config = read_yaml_config(config_path)
+        config['search_criteria'] = '(structure_3d:true)'
         constants_path = os.path.join('protein_information_system/config/', "constants.yaml")
         config['constants'] = constants_path
         self.extractor = AccessionManager(config)

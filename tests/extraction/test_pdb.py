@@ -23,6 +23,7 @@ class TestPDBExtractor(unittest.TestCase):
 
         config['limit_execution'] = 3
 
+
         self.extractor = PDBExtractor(config)
 
 
