@@ -22,7 +22,7 @@ sequence_embedding_types:
   - name: "ESM"
     description: >
       ESM-2 (650M parameters) is a transformer-based protein language model trained with masked language modeling on UniRef50. It learns evolutionary and functional features directly from raw sequences without requiring multiple sequence alignments. With 33 layers and 650M parameters, this model is optimized for accurate structure and function prediction and is widely used for embedding extraction, contact map prediction, and unsupervised learning of protein features.
-    task_name: "esm"
+    task_name: esm
     model_name: facebook/esm2_t33_650M_UR50D
 
   - name: "Prost-T5"
