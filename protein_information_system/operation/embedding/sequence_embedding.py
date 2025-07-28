@@ -66,8 +66,8 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
         types = {}
 
         for type_obj in embedding_types:
-            if type_obj.name in self.conf['embedding']['models'] and self.conf['embedding']['models'][type_obj.name][
-                'enabled'] is True:
+            model_conf = self.conf['embedding']['models']
+            if (type_obj.name in model_conf and model_conf[type_obj.name]['enabled'] is True):
                 module_name = f"{self.base_module_path}.{type_obj.task_name}"
                 module = importlib.import_module(module_name)
 
