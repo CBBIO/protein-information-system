@@ -34,9 +34,10 @@ The primary goal of PIS is to provide a robust framework for large-scale protein
 
 ## **Prerequisites**
 
-- Python 3.10^
+- Python 3.10
 - RabbitMQ
 - PostgreSQL with pgVector extension installed.
+- PSQL client 16
 
 ---
 
@@ -82,10 +83,10 @@ Once RabbitMQ is running, you can access its management interface at [RabbitMQ M
 
 ## **Get started:**
 
-To execute the full extraction process, install dependencies and run:
+To execute the full extraction process, install dependencies and run from project root:
 
 ```bash
-python3 protein_information_system/main.py
+pis
 ```
 
 This command will trigger the complete workflow, starting from the initial data preprocessing stages and continuing through to the final data organization and storage.
