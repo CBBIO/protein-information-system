@@ -8,6 +8,9 @@ from protein_information_system.sql.model.entities.embedding.sequence_embedding 
 
 from protein_information_system.sql.model.entities.sequence.sequence import Sequence
 from protein_information_system.tasks.gpu import GPUTaskInitializer
+import os
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 
 class SequenceEmbeddingManager(GPUTaskInitializer):
@@ -45,8 +48,9 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
         self.model_instances = {}
         self.tokenizer_instances = {}
         self.base_module_path = 'protein_information_system.operation.embedding.proccess.sequence'
-        self.fetch_models_info()
-        self.batch_size = self.conf['embedding'].get('batch_size', 40)
+        self.queue_batch_size = self.conf['embedding'].get('queue_batch_size', 40)
+        self.types = self.fetch_models_info()
+        self.types_by_id = {v['id']: v for v in self.types.values()}
 
     def fetch_models_info(self):
         """
@@ -58,48 +62,74 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
         embedding_types = self.session.query(SequenceEmbeddingType).all()
         self.session.close()
         del self.engine
-        self.types = {}
+
+        types = {}
 
         for type_obj in embedding_types:
-            if type_obj.id in self.conf['embedding']['types']:
+            if type_obj.name in self.conf['embedding']['models'] and self.conf['embedding']['models'][type_obj.name][
+                'enabled'] is True:
                 module_name = f"{self.base_module_path}.{type_obj.task_name}"
                 module = importlib.import_module(module_name)
-                self.types[type_obj.id] = {
+
+                batch_size = self.conf['embedding']['models'][type_obj.name].get('batch_size', 1)
+
+                types[type_obj.name] = {
+                    'name': type_obj.name,
                     'module': module,
                     'model_name': type_obj.model_name,
                     'id': type_obj.id,
                     'task_name': type_obj.task_name,
+                    'batch_size': batch_size
                 }
+
+        return types
 
     def enqueue(self):
         """
-        Enqueues tasks for sequence embedding processing.
+        Enqueues sequence embedding tasks for processing.
 
-        Splits all sequences into batches, checks for existing embeddings in the database,
-        and prepares tasks for missing embeddings.
+        This method retrieves all sequences from the database and filters them according
+        to the maximum allowed sequence length (if configured) and an optional execution limit.
+        It then organizes the sequences into batches and publishes embedding tasks to the appropriate
+        models if no existing embedding is found for a given model and sequence.
 
-        :raises Exception: If an error occurs during the enqueue process.
+        Configuration parameters used:
+            - ``embedding.max_sequence_length`` (int, optional): Maximum length allowed for a sequence.
+              Sequences exceeding this length are excluded.
+            - ``limit_execution`` (int or False): Limits the number of sequences processed.
 
-        Example:
-            >>> manager.enqueue()
+        Steps:
+            1. Retrieve sequences from the database.
+            2. Filter out sequences longer than the configured maximum length.
+            3. Optionally limit the number of sequences using ``limit_execution``.
+            4. Split sequences into batches of size ``queue_batch_size``.
+            5. For each sequence-model pair, check for existing embeddings.
+            6. If no embedding exists, enqueue the task for processing.
+
+        :raises Exception: If an error occurs during the enqueueing process.
         """
         try:
             self.logger.info("Starting embedding enqueue process.")
             self.session_init()
             sequences = self.session.query(Sequence).all()
 
+            max_length = self.conf['embedding'].get('max_sequence_length')
+            if max_length:
+                sequences = [s for s in sequences if s.sequence and len(s.sequence) <= max_length]
+
             if self.conf['limit_execution']:
                 sequences = sequences[:self.conf['limit_execution']]
 
             sequence_batches = [
-                sequences[i: i + self.batch_size]
-                for i in range(0, len(sequences), self.batch_size)
+                sequences[i: i + self.queue_batch_size]
+                for i in range(0, len(sequences), self.queue_batch_size)
             ]
 
             for batch in sequence_batches:
                 model_batches = {}
+
                 for sequence in batch:
-                    for type in self.types.values():
+                    for model_name, type in self.types.items():
                         existing_embedding = self.session.query(SequenceEmbedding).filter_by(
                             sequence_id=sequence.id, embedding_type_id=type['id']
                         ).first()
@@ -110,15 +140,17 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
                                 'sequence_id': sequence.id,
                                 'model_name': type['model_name'],
                                 'embedding_type_id': type['id'],
-                            }
-                            model_batches.setdefault(type['id'], []).append(task_data)
 
-                for model_type, batch_data in model_batches.items():
+                            }
+                            model_batches.setdefault(model_name, []).append(task_data)
+
+                for model_name, batch_data in model_batches.items():
                     if batch_data:
-                        self.publish_task(batch_data, model_type)
+                        self.publish_task(batch_data, model_name)
                         self.logger.info(
-                            f"Published batch with {len(batch_data)} sequences to model type {model_type}."
+                            f"Published batch with {len(batch_data)} sequences to model '{model_name}' (type ID {self.types[model_name]['id']})."
                         )
+
             self.session.close()
 
         except Exception as e:
@@ -141,13 +173,17 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
         """
         try:
             embedding_type_id = batch_data[0]['embedding_type_id']
-            model = self.model_instances[embedding_type_id]
-            tokenizer = self.tokenizer_instances[embedding_type_id]
-            module = self.types[embedding_type_id]['module']
+            model_type = self.types_by_id[embedding_type_id]['name']
+            model = self.model_instances[model_type]
+            tokenizer = self.tokenizer_instances[model_type]
+            module = self.types[model_type]['module']
+
             device = self.conf['embedding'].get('device', "cuda")
 
+            batch_size = self.types[model_type]["batch_size"]
+
             embedding_records = module.embedding_task(
-                batch_data, model, tokenizer, embedding_type_id=embedding_type_id, device=device
+                batch_data, model, tokenizer, batch_size, embedding_type_id=embedding_type_id, device=device
             )
 
             return embedding_records
