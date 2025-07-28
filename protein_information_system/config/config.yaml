@@ -12,7 +12,7 @@ binaries_path: '../binaries'
 monitor_interval: 10 # ⚠️ IMPORTANT: Low values as 1 can cause execution problems.
 
 # Path to save logs, set False to disable the option
-log_path: '~/data/logs/'
+log_path: '~/data/logs'
 
 # ======================================
 # 🗄️ Database Configuration (PostgreSQL)
@@ -43,7 +43,7 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # ==========================
 
 # Maximum number of items to process (for debugging).
-limit_execution: 100 # False for complete run.
+limit_execution: 30 # False for complete run.
 
 # Reset queues with each execution.
 delete_queues: True
@@ -54,7 +54,7 @@ delete_queues: True
 # ===================================
 
 ## Load Accessions.
-tag: 'GOA_JULY_2025' # Identifier tag for accession loading.
+tag: 'METAMORPH' # Identifier tag for accession loading.
 
 # 📗 Load from CSV.
 # Path to the CSV file containing accessions.
@@ -93,21 +93,43 @@ constants: "config/constants.yaml"
 
 # 🧬 Embedding
 embedding:
-  device: "cuda"
-  # List of embedding types to compute (Comment with # at the beginning to de/activate).
-  types:
-    - 1 # ESM2 (facebook/esm2_t33_650M_UR50D) – 650M parameter encoder-only transformer trained with masked language modeling on UniRef50
-    - 2 # ProstT5 (Rostlab/ProstT5) – ∼1.2B parameter encoder-decoder model trained for multi-modal protein representation including 3Di structure
-    - 3 # ProtT5 (Rostlab/prot_t5_xl_uniref50) – ∼1.2B parameter T5-based model pretrained on UniRef50 using span masking
-    - 4 # Ankh3-Large (ElnaggarLab/ankh3-large) – 620M parameter encoder-only T5-style model with [NLU] prefix for efficient semantic/structural embeddings
-    - 5 # ESM3c (esmc_600m) – 600M parameter masked language model (Transformer with rotary embeddings and SwiGLU) trained on UniRef, MGnify, and JGI datasets
+  device: cuda
+  queue_batch_size: 10
+  max_sequence_length: 1556
 
-  # Queue according to this batch size.
-  batch_size: 1
+  models:
+    ESM:
+      enabled: true
+      batch_size: 1
+
+    Prost-T5:
+      enabled: true
+      batch_size: 1
+
+    Prot-T5:
+      enabled: true
+      batch_size: 1
+
+    Ankh3-Large:
+      enabled: true
+      batch_size: 1
+
+    ESM3c:
+      enabled: true
+      batch_size: 1
+
 
 # 🧠 GO Metrics
 # Specifies the list of UniProt evidence codes used to filter annotations. set empty list for all evidences. []
-allowed_evidences: []
+allowed_evidences:
+  - EXP # Inferred from Experiment.
+  - IDA # Inferred from Direct Assay.
+  - IPI # Inferred from Physical Interaction.
+  - IMP # Inferred from Mutant Phenotype.
+  - IGI # Inferred from Genetic Interaction.
+  - IEP # Inferred from Expression Pattern.
+  - TAS # Traceable Author Statement.
+  - IC # Inferred by Curator.
 
 
 
