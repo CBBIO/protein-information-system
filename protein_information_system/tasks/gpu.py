@@ -107,8 +107,8 @@ class GPUTaskInitializer(QueueTaskInitializer):
             self.channel = self.connection.channel()
 
             # Declare queues for each embedding type
-            for model_type in self.conf['embedding']['types']:
-                queue_name = f"{self.computing_queue}_{model_type}"
+            for model in self.conf['embedding']['models']:
+                queue_name = f"{self.computing_queue}_{model}"
                 self.channel.queue_declare(queue=queue_name)
             self.channel.queue_declare(queue=self.inserting_queue)
 
@@ -139,8 +139,9 @@ class GPUTaskInitializer(QueueTaskInitializer):
             self.threads.append(monitor_thread)
 
             # Start the processing for each model type sequentially
-            for model_type in self.conf['embedding']['types']:
-                self.run_processor_worker_sequential(model_type)
+            for model, config in self.conf['embedding']['models'].items():
+                if config.get('enabled'):
+                    self.run_processor_worker_sequential(model)
 
             db_inserter_process.join()
 
