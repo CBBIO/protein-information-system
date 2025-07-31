@@ -83,6 +83,10 @@ data_directory: "~/data"
 # File extension
 file_format: "mmCif"
 
+# === CAFA input files ===
+goa_annotations_file: "../data/cafa3_gt.tsv"       # Ruta al archivo CAFA TSV
+goa_sequences_fasta: "../data/cafa3_gt.fasta"      # Ruta al archivo FASTA con las secuencias
+
 
 # ===========================
 # 🚀 Operations Configuration
