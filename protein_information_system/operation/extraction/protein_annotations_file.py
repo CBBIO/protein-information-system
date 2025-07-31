@@ -1,4 +1,3 @@
-import requests
 from collections import defaultdict
 from Bio import SeqIO
 
