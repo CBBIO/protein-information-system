@@ -12,7 +12,7 @@ binaries_path: '../binaries'
 monitor_interval: 10 # ⚠️ IMPORTANT: Low values as 1 can cause execution problems.
 
 # Path to save logs, set False to disable the option
-log_path: '~/data/logs'
+log_path: '../logs/'
 
 # ======================================
 # 🗄️ Database Configuration (PostgreSQL)
@@ -43,7 +43,7 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # ==========================
 
 # Maximum number of items to process (for debugging).
-limit_execution: 30 # False for complete run.
+limit_execution: 100 # False for complete run.
 
 # Reset queues with each execution.
 delete_queues: True
@@ -58,16 +58,18 @@ tag: 'METAMORPH' # Identifier tag for accession loading.
 
 # 📗 Load from CSV.
 # Path to the CSV file containing accessions.
-load_accesion_csv: ../data/sample.csv
+load_accesion_csv: ../data/sample_scer.csv
+# load_accesion_csv: ../data/sample_celeg.csv
 
 # Column name in the CSV file.
 load_accesion_column: uniprot_id
 
 # 🔬 Fetch from the UniProt API.
 # Query string for UniProt search.
-search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
+# search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
 # Query string for Protein Data Bank search.
-#search_criteria: '(structure_3d:true)'
+search_criteria: '(organism_id:559292)'
+# search_criteria: '(organism_id:6239)'
 
 
 # Number of results to fetch from UniProt (pagination).
@@ -78,7 +80,7 @@ limit: 200
 resolution_threshold: 5
 
 # Local path where the files will be stored.
-data_directory: "~/data"
+data_directory: "../data"
 
 # File extension
 file_format: "mmCif"
