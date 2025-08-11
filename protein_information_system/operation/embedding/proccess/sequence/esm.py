@@ -4,7 +4,10 @@ import torch
 
 def load_model(model_name, conf):
     device = torch.device(conf['embedding'].get('device', "cuda"))
-    return EsmModel.from_pretrained(model_name).to(device)
+    ## capa n-1:
+    return EsmModel.from_pretrained(model_name, output_hidden_states=True).to(device)
+    ## capa n:
+    #return EsmModel.from_pretrained(model_name).to(device)
 
 
 def load_tokenizer(model_name):
@@ -39,7 +42,10 @@ def embedding_task(sequences, model, tokenizer, device, batch_size="NOT_SUPPORTE
 
             try:
                 outputs = model(**tokens)
-                residue_embeddings = outputs.last_hidden_state[0, 1:-1]  # [L, 1280]
+                ## capa n-1:
+                residue_embeddings = outputs.hidden_states[-2][0, 1:-1]  # [L, 1280]
+                ## capa n:
+                #residue_embeddings = outputs.last_hidden_state[0, 1:-1]  # [L, 1280]
                 mean_embedding = residue_embeddings.mean(dim=0)  # → [1280]
 
                 record = {

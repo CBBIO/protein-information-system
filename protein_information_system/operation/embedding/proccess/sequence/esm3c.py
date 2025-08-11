@@ -17,7 +17,12 @@ def load_model(model_name, conf):
         torch.nn.Module: The ESM-3c model loaded on the specified device.
     """
     device = torch.device(conf["embedding"].get("device", "cuda"))
-    return ESMC.from_pretrained(model_name).to(device)
+    ## capa n-1:
+    model = ESMC.from_pretrained(model_name).to(device)
+    model = model.to(torch.float32)
+    return model
+    ## capa n:
+    #return ESMC.from_pretrained(model_name).to(device)
 
 
 def load_tokenizer(model_name=None):
@@ -72,12 +77,21 @@ def embedding_task(sequences, model, tokenizer, device, batch_size="NOT_SUPPORTE
                 protein = ESMProtein(sequence=sequence)
                 protein_tensor = model.encode(protein)
 
+                ## capa n-1:
                 logits_output = model.logits(
                     protein_tensor,
-                    LogitsConfig(sequence=True, return_embeddings=True, )
+                    LogitsConfig(sequence=True, return_embeddings=True, return_hidden_states=True)
                 )
+                emb = logits_output.hidden_states[-2][0, 1:-1].mean(dim=0)
 
-                emb = logits_output.embeddings[0, 1:-1].mean(dim=0)  # [L, D] → [D]
+                ## capa n:
+                #logits_output = model.logits(
+                #   protein_tensor,
+                #   LogitsConfig(sequence=True, return_embeddings=True, )
+                #)
+                #emb = logits_output.embeddings[0, 1:-1].mean(dim=0)  # [L, D] → [D]
+                
+                
 
                 record = {
                     "sequence_id": sequence_id,

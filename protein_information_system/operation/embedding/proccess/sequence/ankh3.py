@@ -5,7 +5,10 @@ import torch
 def load_model(model_name, conf):
     device = torch.device(conf['embedding'].get('device', "cuda"))
     dtype = torch.float16 if device.type == "cuda" else torch.float32
-    model = T5EncoderModel.from_pretrained(model_name, torch_dtype=dtype).to(device).eval()
+    ## capa n-1:
+    model = T5EncoderModel.from_pretrained(model_name, output_hidden_states=True, torch_dtype=dtype).to(device).eval()
+    ## capa n:
+    # model = T5EncoderModel.from_pretrained(model_name, torch_dtype=dtype).to(device).eval()
     return model
 
 
@@ -31,7 +34,10 @@ def embedding_task(sequences, model, tokenizer, device, batch_size=8, embedding_
         with torch.no_grad():
             try:
                 outputs = model(**inputs)
-                embeddings = outputs.last_hidden_state
+                ## capa n-1:
+                embeddings = outputs.hidden_states[-2]
+                ## capa n:
+                #embeddings = outputs.last_hidden_state
 
                 for idx, seq in enumerate(batch):
                     length = inputs.attention_mask[idx].sum().item() - 2  # excluye [NLU] y </s>
