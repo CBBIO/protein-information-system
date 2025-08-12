@@ -65,10 +65,10 @@ load_accesion_csv: ../data/sample_scer.csv
 load_accesion_column: uniprot_id
 
 # 🔬 Fetch from the UniProt API.
-# Query string for UniProt search.
-# search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
+# Query string for UniProt search. 
+search_criteria: '(go_exp:* OR go_ida:* OR go_ipi:* OR go_imp:* OR go_igi:* OR go_iep:* OR go_tas:* OR go_ic:*)'
 # Query string for Protein Data Bank search.
-search_criteria: '(organism_id:559292)'
+# search_criteria: '(organism_id:559292)'
 # search_criteria: '(organism_id:6239)'
 
 
