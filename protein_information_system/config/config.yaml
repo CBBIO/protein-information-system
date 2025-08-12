@@ -43,7 +43,7 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # ==========================
 
 # Maximum number of items to process (for debugging).
-limit_execution: 30 # False for complete run.
+limit_execution: 10 # False for complete run.
 
 # Reset queues with each execution.
 delete_queues: True
