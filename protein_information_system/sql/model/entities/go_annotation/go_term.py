@@ -7,7 +7,7 @@ class GOTerm(Base):
     __tablename__ = "go_terms"
 
     go_id = Column(String, primary_key=True, nullable=False)
-    category = Column(String)
+    category = Column(String, nullable=False, default="undefined")
     description = Column(String)
 
     # Relaciones
