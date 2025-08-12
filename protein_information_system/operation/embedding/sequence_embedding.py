@@ -10,8 +10,6 @@ from protein_information_system.sql.model.entities.sequence.sequence import Sequ
 from protein_information_system.tasks.gpu import GPUTaskInitializer
 import os
 
-os.environ["TOKENIZERS_PARALLELISM"] = "true"
-
 
 class SequenceEmbeddingManager(GPUTaskInitializer):
     """
@@ -53,25 +51,26 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
         self.types_by_id = {v['id']: v for v in self.types.values()}
 
     def fetch_models_info(self):
-        """
-        Retrieves and initializes embedding models based on the database configuration.
-
-        :raises sqlalchemy.exc.SQLAlchemyError: If there's an error querying the database.
-        """
         self.session_init()
         embedding_types = self.session.query(SequenceEmbeddingType).all()
         self.session.close()
         del self.engine
 
         types = {}
-
         for type_obj in embedding_types:
             model_conf = self.conf['embedding']['models']
             if (type_obj.name in model_conf and model_conf[type_obj.name]['enabled'] is True):
                 module_name = f"{self.base_module_path}.{type_obj.task_name}"
                 module = importlib.import_module(module_name)
 
-                batch_size = self.conf['embedding']['models'][type_obj.name].get('batch_size', 1)
+                batch_size = model_conf[type_obj.name].get('batch_size', 1)
+
+                # 🔧 NUEVO: normalizar layer_index (int -> [int], lista -> lista)
+                raw_layer_index = model_conf[type_obj.name].get('layer_index', [0])
+                if isinstance(raw_layer_index, int):
+                    layer_index = [raw_layer_index]
+                else:
+                    layer_index = list(raw_layer_index) if raw_layer_index else [0]
 
                 types[type_obj.name] = {
                     'name': type_obj.name,
@@ -79,76 +78,108 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
                     'model_name': type_obj.model_name,
                     'id': type_obj.id,
                     'task_name': type_obj.task_name,
-                    'batch_size': batch_size
+                    'batch_size': batch_size,
+                    'layer_index': layer_index,  # ✅ ya definido
                 }
 
         return types
 
     def enqueue(self):
         """
-        Enqueues sequence embedding tasks for processing.
+        Enqueue sequence-embedding tasks for all models, requesting only the *missing* layers.
 
-        This method retrieves all sequences from the database and filters them according
-        to the maximum allowed sequence length (if configured) and an optional execution limit.
-        It then organizes the sequences into batches and publishes embedding tasks to the appropriate
-        models if no existing embedding is found for a given model and sequence.
+        Behavior
+        --------
+        For each (sequence, embedding model type):
+          1) Read the desired layer indices from configuration (e.g., [0, 1, 2]).
+          2) Query the database for already-present layers for (sequence_id, embedding_type_id).
+          3) Compute the set difference → 'missing_layers'.
+          4) If any layers are missing, publish a single task payload for that sequence/model
+             that includes *only* those missing layer indices.
 
-        Configuration parameters used:
-            - ``embedding.max_sequence_length`` (int, optional): Maximum length allowed for a sequence.
-              Sequences exceeding this length are excluded.
-            - ``limit_execution`` (int or False): Limits the number of sequences processed.
+        Batching
+        --------
+        Sequences are chunked into batches of size `self.queue_batch_size` to control memory and
+        message size. For each batch, messages are grouped per model (backend) to minimize queue traffic.
 
-        Steps:
-            1. Retrieve sequences from the database.
-            2. Filter out sequences longer than the configured maximum length.
-            3. Optionally limit the number of sequences using ``limit_execution``.
-            4. Split sequences into batches of size ``queue_batch_size``.
-            5. For each sequence-model pair, check for existing embeddings.
-            6. If no embedding exists, enqueue the task for processing.
+        Notes
+        -----
+        - This function assumes the DB schema has a `layer_index` column on the `sequence_embeddings`
+          table and that downstream storage (`store_entry`) includes this value when inserting.
+        - It is recommended to add a UNIQUE constraint on
+              (sequence_id, embedding_type_id, layer_index)
+          to prevent duplicates in concurrent/parallel workers.
 
-        :raises Exception: If an error occurs during the enqueueing process.
+        Raises
+        ------
+        Exception
+            Re-raises any unexpected error after logging.
+
         """
         try:
             self.logger.info("Starting embedding enqueue process.")
             self.session_init()
             sequences = self.session.query(Sequence).all()
 
+            # Optional max-length filter (configured)
             max_length = self.conf['embedding'].get('max_sequence_length')
             if max_length:
-                sequences = [s for s in sequences if s.sequence and len(s.sequence) <= max_length]
+                sequences = [
+                    s for s in sequences
+                    if s.sequence and len(s.sequence) <= max_length
+                ]
 
+            # Optional execution limit (for debugging or staged runs)
             if self.conf['limit_execution']:
                 sequences = sequences[:self.conf['limit_execution']]
 
+            # Chunk sequences to limit memory and size of per-publish batches
             sequence_batches = [
                 sequences[i: i + self.queue_batch_size]
                 for i in range(0, len(sequences), self.queue_batch_size)
             ]
 
             for batch in sequence_batches:
+                # Group outgoing messages by model (backend)
                 model_batches = {}
 
                 for sequence in batch:
-                    for model_name, type in self.types.items():
-                        existing_embedding = self.session.query(SequenceEmbedding).filter_by(
-                            sequence_id=sequence.id, embedding_type_id=type['id']
-                        ).first()
+                    for model_name, type_info in self.types.items():
+                        # Desired layers for this embedding type (e.g., [0, 1, 2])
+                        desired_layers = type_info['layer_index']
 
-                        if not existing_embedding:
+                        # Fetch already stored layers for (sequence, type)
+                        existing_layers = {
+                            li for (li,) in
+                            self.session.query(SequenceEmbedding.layer_index)
+                            .filter_by(
+                                sequence_id=sequence.id,
+                                embedding_type_id=type_info['id']
+                            )
+                            .all()
+                        }
+
+                        # Compute missing layers in config order (stable iteration)
+                        missing_layers = [li for li in desired_layers if li not in existing_layers]
+
+                        if missing_layers:
                             task_data = {
                                 'sequence': sequence.sequence,
                                 'sequence_id': sequence.id,
-                                'model_name': type['model_name'],
-                                'embedding_type_id': type['id'],
-
+                                'model_name': type_info['model_name'],
+                                'embedding_type_id': type_info['id'],
+                                # CRITICAL: pass only the missing layers for this sequence+model
+                                'layer_index': missing_layers,
                             }
                             model_batches.setdefault(model_name, []).append(task_data)
 
+                # Publish a single message per model grouping for this batch
                 for model_name, batch_data in model_batches.items():
                     if batch_data:
                         self.publish_task(batch_data, model_name)
                         self.logger.info(
-                            f"Published batch with {len(batch_data)} sequences to model '{model_name}' (type ID {self.types[model_name]['id']})."
+                            "Published batch with %d sequences to model '%s' (type ID %s).",
+                            len(batch_data), model_name, self.types[model_name]['id']
                         )
 
             self.session.close()
@@ -182,48 +213,58 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
 
             batch_size = self.types[model_type]["batch_size"]
 
+            layer_index_list = self.types[model_type].get('layer_index', [0])
+
             embedding_records = module.embedding_task(
                 sequences=batch_data,
                 model=model,
                 tokenizer=tokenizer,
                 device=device,
                 batch_size=batch_size,
-                embedding_type_id=embedding_type_id
+                embedding_type_id=embedding_type_id,
+                layer_index_list=layer_index_list,
             )
-
             return embedding_records
 
         except Exception as e:
             self.logger.error(f"Error during embedding process: {e}\n{traceback.format_exc()}")
             raise
 
+    from sqlalchemy.dialects.postgresql import insert
+
+    from sqlalchemy.dialects.postgresql import insert
+
     def store_entry(self, records):
-        """
-        Stores embedding results in the database.
-
-        :param records: List of embedding result dictionaries.
-        :type records: list[dict]
-        :raises RuntimeError: If an error occurs during database storage.
-
-        Example:
-            >>> records = [
-            >>>     {"sequence_id": 1, "embedding_type_id": 2, "embedding": [0.1, 0.2], "shape": [2]}
-            >>> ]
-            >>> manager.store_entry(records)
-        """
         session = self.session
         try:
-            for record in records:
-                embedding_entry = SequenceEmbedding(
-                    sequence_id=record['sequence_id'],
-                    embedding_type_id=record['embedding_type_id'],
-                    embedding=record['embedding'],
-                    shape=record['shape'],
+            if not records:
+                return
+
+            values = [
+                dict(
+                    sequence_id=r['sequence_id'],
+                    embedding_type_id=r['embedding_type_id'],
+                    layer_index=r['layer_index'],
+                    embedding=r['embedding'],
+                    shape=r['shape'],
                 )
-                session.add(embedding_entry)
+                for r in records
+            ]
+            from sqlalchemy.dialects.postgresql import insert  # <-- IMPORT NECESARIO
+
+            # resto de imports...
+
+            stmt = insert(SequenceEmbedding).values(values)
+            stmt = stmt.on_conflict_do_nothing(
+                index_elements=['sequence_id', 'embedding_type_id', 'layer_index']
+            )
+
+            session.execute(stmt)
             session.commit()
 
         except Exception as e:
             session.rollback()
             self.logger.error(f"Error during database storage: {e}")
             raise RuntimeError(f"Error storing entry: {e}")
+
+

@@ -104,23 +104,29 @@ embedding:
   models:
     ESM:
       enabled: true
-      batch_size: 1
+      batch_size: 5
+      layer_index: [ 0, 1, 2 ]   # 0=-1, 1=-2, 2=-3
 
     Prost-T5:
       enabled: true
-      batch_size: 1
+      batch_size: 5
+      layer_index: [ 0,1, 2 ]
 
     Prot-T5:
       enabled: true
-      batch_size: 1
+      batch_size: 3
+      layer_index: [ 0, 1, 2 ]
 
     Ankh3-Large:
       enabled: true
       batch_size: 1
+      layer_index: [ 0, 1, 2 ]
 
     ESM3c:
       enabled: true
-      batch_size: 1
+      batch_size: 2
+      layer_index: [ 0, 1, 2 ]
+
 
 
 # 🧠 GO Metrics
