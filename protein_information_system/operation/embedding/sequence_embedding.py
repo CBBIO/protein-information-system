@@ -258,5 +258,3 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
             session.rollback()
             self.logger.error(f"Error during database storage: {e}")
             raise RuntimeError(f"Error storing entry: {e}")
-
-
