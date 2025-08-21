@@ -43,7 +43,7 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # ==========================
 
 # Maximum number of items to process (for debugging).
-limit_execution: 10 # False for complete run.
+limit_execution: 200 # False for complete run.
 
 # Reset queues with each execution.
 delete_queues: True
@@ -84,8 +84,8 @@ data_directory: "~/data"
 file_format: "mmCif"
 
 # === CAFA input files ===
-goa_annotations_file: "../data/cafa3_gt.tsv"       # Ruta al archivo CAFA TSV
-goa_sequences_fasta: "../data/cafa3_gt.fasta"      # Ruta al archivo FASTA con las secuencias
+goa_annotations_file: "../data/uniprot_sprot_exp.txt"       # Ruta al archivo CAFA TSV
+goa_sequences_fasta: "../data/uniprot_sprot_exp.fasta"      # Ruta al archivo FASTA con las secuencias
 
 
 # ===========================
@@ -104,17 +104,17 @@ embedding:
   models:
     ESM:
       enabled: true
-      batch_size: 5
+      batch_size: 1
       layer_index: [ 0, 1, 2 ]   # 0=-1, 1=-2, 2=-3
 
     Prost-T5:
       enabled: true
-      batch_size: 5
+      batch_size: 1
       layer_index: [ 0,1, 2 ]
 
     Prot-T5:
       enabled: true
-      batch_size: 3
+      batch_size: 1
       layer_index: [ 0, 1, 2 ]
 
     Ankh3-Large:
@@ -124,7 +124,7 @@ embedding:
 
     ESM3c:
       enabled: true
-      batch_size: 2
+      batch_size: 1
       layer_index: [ 0, 1, 2 ]
 
 
