@@ -61,7 +61,7 @@ tag: 'METAMORPH' # Identifier tag for accession loading.
 load_accesion_csv: ../data/sample.csv
 
 # Column name in the CSV file.
-load_accesion_column: uniprot_id
+load_accesion_column: id
 
 # 🔬 Fetch from the UniProt API.
 # Query string for UniProt search.
