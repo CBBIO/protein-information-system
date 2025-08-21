@@ -17,7 +17,7 @@ from protein_information_system.sql.model.entities.sequence.sequence import Sequ
 from protein_information_system.sql.model.entities.structure.structure import Structure
 
 
-@pytest.mark.order(4)
+@pytest.mark.order(5)
 class TestSequenceEmbeddingManager(unittest.TestCase):
 
     def setUp(self):

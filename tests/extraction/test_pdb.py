@@ -12,7 +12,7 @@ from protein_information_system.sql.model.entities.structure.structure import St
 from protein_information_system.sql.model.entities.structure.chain import Chain
 from protein_information_system.sql.model.entities.structure.state import State
 
-@pytest.mark.order(3)
+@pytest.mark.order(4)
 class TestPDBExtractor(unittest.TestCase):
 
     def setUp(self):
