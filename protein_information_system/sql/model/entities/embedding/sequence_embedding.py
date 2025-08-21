@@ -1,11 +1,9 @@
 from pgvector.sqlalchemy import HALFVEC
-from sqlalchemy import Column, Integer, String, ForeignKey, ARRAY, DateTime, func
 from sqlalchemy.orm import relationship, mapped_column
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, ARRAY, DateTime, func,
     UniqueConstraint, Index
 )
-
 
 from protein_information_system.sql.model.core.base import Base
 
@@ -31,8 +29,6 @@ class SequenceEmbeddingType(Base):
     model_name = Column(String)
 
     seq_embeddings = relationship("SequenceEmbedding", back_populates="embedding_type")
-
-
 
 
 class SequenceEmbedding(Base):

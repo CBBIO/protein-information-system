@@ -8,7 +8,6 @@ from protein_information_system.sql.model.entities.embedding.sequence_embedding 
 
 from protein_information_system.sql.model.entities.sequence.sequence import Sequence
 from protein_information_system.tasks.gpu import GPUTaskInitializer
-import os
 
 
 class SequenceEmbeddingManager(GPUTaskInitializer):
@@ -124,10 +123,9 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
             # Optional max-length filter (configured)
             max_length = self.conf['embedding'].get('max_sequence_length')
             if max_length:
-                sequences = [
-                    s for s in sequences
-                    if s.sequence and len(s.sequence) <= max_length
-                ]
+                for s in sequences:
+                    if s.sequence and len(s.sequence) > max_length:
+                        s.sequence = s.sequence[:max_length]
 
             # Optional execution limit (for debugging or staged runs)
             if self.conf['limit_execution']:
@@ -230,10 +228,6 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
             self.logger.error(f"Error during embedding process: {e}\n{traceback.format_exc()}")
             raise
 
-    from sqlalchemy.dialects.postgresql import insert
-
-    from sqlalchemy.dialects.postgresql import insert
-
     def store_entry(self, records):
         session = self.session
         try:
@@ -251,8 +245,6 @@ class SequenceEmbeddingManager(GPUTaskInitializer):
                 for r in records
             ]
             from sqlalchemy.dialects.postgresql import insert  # <-- IMPORT NECESARIO
-
-            # resto de imports...
 
             stmt = insert(SequenceEmbedding).values(values)
             stmt = stmt.on_conflict_do_nothing(
