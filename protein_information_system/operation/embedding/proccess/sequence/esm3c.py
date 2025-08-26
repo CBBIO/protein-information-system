@@ -3,6 +3,7 @@
 from esm.models.esmc import ESMC
 from esm.sdk.api import ESMProtein, LogitsConfig
 import torch
+from helpers.layers import validate_layer_indices
 
 
 def load_model(model_name, conf):
@@ -52,34 +53,47 @@ def embedding_task(
                 # 🔧 Ensure FP32 for all tensors we will use
                 hs = logits_output.hidden_states
                 emb_seq = logits_output.embeddings
+
                 if hs is not None:
-                    hs = [t.to(torch.float32) for t in hs]  # FP32 list
+                    # ESM3c SDK returns hidden_states as a tensor with shape [N_layers, 1, L, D]
+                    if isinstance(hs, torch.Tensor):
+                        # Normalize to list of [1, L, D] tensors for consistency
+                        hs = [hs[i].to(torch.float32) for i in range(hs.shape[0])]
+                    else:
+                        hs = [t.to(torch.float32) for t in hs]
                 if emb_seq is not None:
                     emb_seq = emb_seq.to(torch.float32)
 
-                layer_tensors = {}
-                if hs is not None:
-                    for li in set(layer_index_list):
-                        layer_tensors[li] = hs[-(li + 1)]  # [1, L, D] FP32
-                else:
-                    layer_tensors[0] = emb_seq  # FP32
-                    if any(li != 0 for li in layer_index_list):
-                        layer_index_list = [0]
+                # ✅ Validate configured layer indices
+                valid_layers = validate_layer_indices(
+                    layer_index_list,
+                    hs,  # may be None
+                    model_tag="ESM3c",
+                    sequence_id=sequence_id,
+                )
 
-                for li in layer_index_list:
-                    layer_tensor = layer_tensors[li]  # [1, L, D] FP32
+                layer_tensors = {}
+                if hs is None:
+                    # embeddings-only (valid_layers must be [0])
+                    layer_tensors[0] = emb_seq
+                else:
+                    for li in valid_layers:
+                        layer_tensors[li] = hs[-(li + 1)]  # [1, L, D] FP32
+
+                for li in valid_layers:
+                    layer_tensor = layer_tensors[li]  # [1, L, D]
                     emb = layer_tensor[0, 1:-1].mean(dim=0)  # [D] FP32
+
                     record = {
                         "sequence_id": sequence_id,
                         "embedding_type_id": embedding_type_id,
                         "layer_index": li,
                         "sequence": sequence,
-                        "embedding": emb.cpu().numpy().tolist(),  # NumPy OK en FP32
+                        "embedding": emb.cpu().numpy().tolist(),
                         "shape": emb.shape,
                     }
-                    print(record)
-
                     embedding_records.append(record)
+
             except Exception as e:
                 # Robustness: continue processing remaining batches; free GPU cache on failure.
                 print(f"❌ Failed to process sequence {sequence_id}: {e}")

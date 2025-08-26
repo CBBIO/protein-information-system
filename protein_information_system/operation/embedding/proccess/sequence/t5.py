@@ -2,6 +2,7 @@
 from transformers import T5Tokenizer, T5EncoderModel
 import re
 import torch
+from helpers.layers import validate_layer_indices
 
 
 def load_model(model_name, conf):
@@ -124,17 +125,22 @@ def embedding_task(
                 # attention_mask: [B, L] with 1 for valid tokens and 0 for padding.
                 mask = inputs.attention_mask.unsqueeze(-1).type_as(hidden_states[-1])  # [B, L, 1]
 
-                # Iterate over requested layers; compute masked mean per sequence for each layer.
-                for li in layer_index_list:
-                    # Convert "relative from the end" index (0=last) to python negative index.
+                # ✅ Validate configured layer indices (reverse indexing: 0=last)
+                valid_layers = validate_layer_indices(
+                    layer_index_list,
+                    hidden_states,
+                    model_tag="T5",
+                    sequence_id=f"batch-{i // batch_size}",
+                )
+
+                # Iterate over valid layers; compute masked mean per sequence for each layer.
+                for li in valid_layers:
                     layer_tensor = hidden_states[-(li + 1)]  # [B, L, D]
 
                     # Masked mean across the sequence length dimension:
-                    #  - multiply by mask to zero padded positions
-                    #  - sum over tokens and divide by the count of valid tokens
-                    summed = (layer_tensor * mask).sum(dim=1)       # [B, D]
-                    counts = mask.sum(dim=1).clamp(min=1.0)         # [B, 1]
-                    embeddings = summed / counts                    # [B, D]
+                    summed = (layer_tensor * mask).sum(dim=1)  # [B, D]
+                    counts = mask.sum(dim=1).clamp(min=1.0)  # [B, 1]
+                    embeddings = summed / counts  # [B, D]
 
                     # Materialize one record per (sequence, layer)
                     for idx, seq in enumerate(batch_sequences):
@@ -142,11 +148,12 @@ def embedding_task(
                             "sequence_id": seq["sequence_id"],
                             "embedding_type_id": embedding_type_id,
                             "layer_index": li,
-                            "sequence": sequences[i + idx]["sequence"],  # original, unprocessed string
+                            "sequence": sequences[i + idx]["sequence"],  # original string
                             "embedding": embeddings[idx].cpu().numpy().tolist(),
                             "shape": embeddings[idx].shape,
                         }
                         embedding_records.append(record)
+
 
             except Exception as e:
                 # Robustness: continue processing remaining batches; free GPU cache on failure.

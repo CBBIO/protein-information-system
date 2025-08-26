@@ -1,6 +1,7 @@
 # ankh3.py — Backend for computing embeddings with Ankh3 (T5-encoder family)
 from transformers import T5Tokenizer, T5EncoderModel
 import torch
+from helpers.layers import validate_layer_indices
 
 
 def load_model(model_name, conf):
@@ -98,17 +99,25 @@ def embedding_task(
                 outputs = model(**inputs)
                 hidden_states = outputs.hidden_states  # tuple: [emb, layer1, ..., last]; shapes [B, L, D]
 
+                # Validate configured layer indices once per batch (reverse indexing: 0=last)
+                valid_layers = validate_layer_indices(
+                    layer_index_list,
+                    hidden_states,
+                    model_tag="Ankh3",
+                    sequence_id=f"batch-{i // batch_size}",
+                )
+
                 # Broadcastable mask to exclude padding from the mean (1=valid token, 0=padding)
                 mask = inputs.attention_mask.unsqueeze(-1).type_as(hidden_states[-1])  # [B, L, 1]
 
-                for li in layer_index_list:
-                    # Convert "relative-from-end" indexing (0=last) to python negative index
+                for li in valid_layers:
+                    # Reverse selection: 0 -> last, 1 -> penultimate, ...
                     layer_tensor = hidden_states[-(li + 1)]  # [B, L, D]
 
                     # Masked mean across sequence length dimension (ignore padding)
                     summed = (layer_tensor * mask).sum(dim=1)  # [B, D]
-                    counts = mask.sum(dim=1).clamp(min=1.0)    # [B, 1]
-                    embeddings = summed / counts               # [B, D]
+                    counts = mask.sum(dim=1).clamp(min=1.0)  # [B, 1]
+                    embeddings = summed / counts  # [B, D]
 
                     # Emit one record per (sequence, layer)
                     for idx, seq in enumerate(batch):
@@ -122,6 +131,7 @@ def embedding_task(
                             "shape": mean_embedding.shape,
                         }
                         embedding_records.append(record)
+
 
             except Exception as e:
                 # Continue with the next batch; free GPU cache on failure

@@ -1,6 +1,7 @@
 # esm.py — Backend for computing ESM embeddings with multi-layer export
 from transformers import AutoTokenizer, EsmModel
 import torch
+from helpers.layers import validate_layer_indices
 
 
 def load_model(model_name, conf):
@@ -115,20 +116,27 @@ def embedding_task(
                 outputs = model(**tokens)
                 hidden_states = outputs.hidden_states  # tuple of [B, L, D] tensors
 
+                # ✅ Validate configured layer indices (reverse indexing: 0=last)
+                valid_layers = validate_layer_indices(
+                    layer_index_list,
+                    hidden_states,
+                    model_tag="ESM",
+                    sequence_id=sequence_id,
+                )
+
                 # Build a mask that excludes padding AND special tokens (CLS/BOS, EOS)
-                # Start from attention_mask (1 on valid tokens, incl. specials)
                 mask = tokens["attention_mask"].clone()  # [B, L]
                 mask = _zero_special_tokens_inplace(mask)  # zero CLS/BOS and EOS
                 mask_f = mask.unsqueeze(-1).type_as(hidden_states[-1])  # [B, L, 1]
 
-                for li in layer_index_list:
+                for li in valid_layers:
                     # 0=last, 1=penultimate, etc. → python negative index
                     layer_tensor = hidden_states[-(li + 1)]  # [B, L, D]
 
                     # Masked mean over sequence length (ignore padding + specials)
                     summed = (layer_tensor * mask_f).sum(dim=1)  # [B, D]
-                    counts = mask_f.sum(dim=1).clamp(min=1.0)    # [B, 1]
-                    mean_embedding = (summed / counts)[0]        # [D]; B==1
+                    counts = mask_f.sum(dim=1).clamp(min=1.0)  # [B, 1]
+                    mean_embedding = (summed / counts)[0]  # [D]; B==1
 
                     record = {
                         "sequence_id": sequence_id,
