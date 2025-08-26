@@ -61,6 +61,9 @@ class QueueTaskInitializer(BaseTaskInitializer):
         if self.conf.get('delete_queues', False):
             self.delete_all_queues()
 
+        self.connection = self.create_rabbitmq_connection()
+        self.channel = self.connection.channel()
+
     def setup_rabbitmq(self):
         """
         Set up RabbitMQ by declaring the necessary queues.
@@ -273,9 +276,8 @@ class QueueTaskInitializer(BaseTaskInitializer):
         self.logger.debug("Publishing a task to the computing queue.")
         if not isinstance(data, bytes):
             data = pickle.dumps(data)
-        with self.create_rabbitmq_connection() as connection:
-            channel = connection.channel()
-            channel.basic_publish(
+
+            self.channel.basic_publish(
                 exchange='',
                 routing_key=self.computing_queue,
                 body=data
