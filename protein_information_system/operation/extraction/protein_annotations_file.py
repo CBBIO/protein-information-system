@@ -196,60 +196,115 @@ class GOAnnotationsQueueProcessor(QueueTaskInitializer):
         return sequence
 
     def store_entry(self, data: dict) -> None:
-        """Persist a processed task result into the database.
+        """Persist a processed protein entry into the database.
 
-        The following entities are created/updated as needed:
-        - ``Protein`` (by accession ID)
-        - ``Accession`` (linking the accession code to the protein)
-        - ``Sequence`` (if present in the task result) and linkage from protein
-        - ``GOTerm`` records with categories
-        - ``ProteinGOTermAnnotation`` associations with a default evidence code
+        This method performs the following steps in a transactional manner:
 
-        Notes
-        -----
-        - If the sequence is missing, the method logs a warning and proceeds to
-          store GO annotations only.
-        - GO terms without a usable category are skipped at creation time; the
-          method will attempt to reuse an existing ``GOTerm`` if present.
+        1. Ensure the existence of the Protein and its corresponding Accession record.
+        2. Link the Protein to a Sequence if available, creating the sequence record
+           on demand.
+        3. Ensure the existence of all referenced GO terms (one by one).
+        4. Collect the set of GO associations (protein_id, go_id) to be created.
+        5. Query in bulk which associations already exist for this protein.
+        6. Insert only the missing associations in a single bulk statement
+           (multi-values INSERT).
+        7. Commit all changes once at the end.
+
+        Compared to the previous row-by-row approach, this implementation
+        eliminates the N+1 query pattern and reduces overhead by performing
+        association inserts in bulk. This significantly improves throughput when
+        handling proteins with a large number of GO annotations.
+
+        Parameters
+        ----------
+        data : dict
+            Parsed entry with at least:
+              - "protein": str, protein identifier
+              - "sequence": Optional[str], raw protein sequence
+              - "go_terms": List[Tuple[str, str]], list of (go_id, category)
         """
+        from sqlalchemy import select, insert
+
         try:
-            protein = self.get_or_create_protein(data["protein"])  # upsert Protein
+            # 1) Upsert Protein and Accession (reuse existing helpers)
+            protein = self.get_or_create_protein(data["protein"])
             self.get_or_create_accession(
                 code=data["protein"], protein_id=protein.id, primary=True
             )
 
-            # Optional sequence upsert + linkage
+            # 2) Upsert Sequence if provided
             if not data.get("sequence"):
                 self.logger.warning(
                     f"No sequence for {protein.id}; skipping protein.sequence link."
                 )
             else:
-                sequence = self.get_or_create_sequence(data["sequence"])  # upsert Sequence
+                sequence = self.get_or_create_sequence(data["sequence"])
                 self.session.flush()  # ensure sequence.id is available
-                # If no ORM relationship, set the foreign key directly
                 protein.sequence_id = sequence.id
 
-            # Upsert GO terms and create associations
-            for go_id, category in data["go_terms"]:
+            # 3) Ensure GO terms and collect their IDs
+            incoming_pairs = list(set(data["go_terms"]))  # de-duplicate in memory
+            go_ids_to_link = []
+
+            for go_id, category in incoming_pairs:
                 if not category or str(category).strip() == "":
+                    # Only reuse existing GO term if category is missing/invalid
                     self.logger.warning(
                         f"GO {go_id} with empty/invalid category; attempting reuse only."
                     )
-                    go_term_entry = self.session.query(GOTerm).filter_by(go_id=go_id).first()
+                    go_term_entry = (
+                        self.session.query(GOTerm).filter_by(go_id=go_id).first()
+                    )
                     if not go_term_entry:
-                        # No category -> cannot create a new GOTerm; skip
                         continue
                 else:
+                    # Upsert GO term with provided category
                     go_term_entry = self.get_or_create_go_term(go_id, category)
 
-                # Evidence codes are not provided by the CAFA TSV; default to UNKNOWN
-                self.get_or_create_association(
-                    protein.id, go_term_entry.go_id, evidence_code="UNKNOWN"
+                go_ids_to_link.append(go_term_entry.go_id)
+
+            if not go_ids_to_link:
+                # Nothing to associate; still commit possible Accession/Sequence updates
+                self.session.commit()
+                self.logger.info(
+                    f"Protein {protein.id} updated (no GO associations to add)."
+                )
+                return
+
+            # 4) Query existing associations in bulk for this protein
+            go_ids_to_link = list(set(go_ids_to_link))  # ensure uniqueness
+            existing_go_ids = set(
+                self.session.execute(
+                    select(ProteinGOTermAnnotation.go_id).where(
+                        ProteinGOTermAnnotation.protein_id == protein.id,
+                        ProteinGOTermAnnotation.go_id.in_(go_ids_to_link),
+                    )
+                ).scalars()
+            )
+
+            # 5) Build the payload for missing associations only
+            missing = [
+                {
+                    "protein_id": protein.id,
+                    "go_id": go_id,
+                    "evidence_code": "UNKNOWN",  # default evidence code
+                }
+                for go_id in go_ids_to_link
+                if go_id not in existing_go_ids
+            ]
+
+            # 6) Bulk insert missing associations in a single statement
+            if missing:
+                self.session.execute(
+                    insert(ProteinGOTermAnnotation.__table__),  # Core multi-values
+                    missing,
                 )
 
+            # 7) Final commit (even if helpers may have committed earlier)
             self.session.commit()
             self.logger.info(
-                f"Protein {protein.id} successfully updated with sequence and GO terms."
+                f"Protein {protein.id} successfully updated: "
+                f"{len(go_ids_to_link)} GO(s) seen, {len(missing)} new association(s) inserted."
             )
 
         except Exception as e:
