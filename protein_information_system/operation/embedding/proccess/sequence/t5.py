@@ -2,7 +2,8 @@
 from transformers import T5Tokenizer, T5EncoderModel
 import re
 import torch
-from helpers.layers import validate_layer_indices
+
+from protein_information_system.helpers.layers import validate_layer_indices
 
 
 def load_model(model_name, conf):
@@ -41,13 +42,13 @@ def load_tokenizer(model_name):
 
 
 def embedding_task(
-    sequences,
-    model,
-    tokenizer,
-    device,
-    batch_size=32,
-    embedding_type_id=None,
-    layer_index_list=None,
+        sequences,
+        model,
+        tokenizer,
+        device,
+        batch_size=32,
+        embedding_type_id=None,
+        layer_index_list=None,
 ):
     """
     Compute per-sequence embeddings for one or more hidden-state layers in a single forward pass.
@@ -153,7 +154,6 @@ def embedding_task(
                             "shape": embeddings[idx].shape,
                         }
                         embedding_records.append(record)
-
 
             except Exception as e:
                 # Robustness: continue processing remaining batches; free GPU cache on failure.

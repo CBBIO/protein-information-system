@@ -3,7 +3,8 @@
 from esm.models.esmc import ESMC
 from esm.sdk.api import ESMProtein, LogitsConfig
 import torch
-from helpers.layers import validate_layer_indices
+
+from protein_information_system.helpers.layers import validate_layer_indices
 
 
 def load_model(model_name, conf):

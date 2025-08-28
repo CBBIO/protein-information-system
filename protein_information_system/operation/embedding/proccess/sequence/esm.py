@@ -1,7 +1,8 @@
 # esm.py — Backend for computing ESM embeddings with multi-layer export
 from transformers import AutoTokenizer, EsmModel
 import torch
-from helpers.layers import validate_layer_indices
+
+from protein_information_system.helpers.layers import validate_layer_indices
 
 
 def load_model(model_name, conf):
