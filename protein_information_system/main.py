@@ -36,12 +36,12 @@ def main(config_path='config/config.yaml'):
 
     # Step 3: Run components
     GOAnnotationsQueueProcessor(conf).start()
-    # AccessionManager(conf).fetch_accessions_from_api()
-    # AccessionManager(conf).load_accessions_from_csv()
-    # UniProtExtractor(conf).start()
-    # PDBExtractor(conf).start()
+    AccessionManager(conf).fetch_accessions_from_api()
+    AccessionManager(conf).load_accessions_from_csv()
+    UniProtExtractor(conf).start()
+    PDBExtractor(conf).start()
     SequenceEmbeddingManager(conf).start()
-    # Structure3DiManager(conf).start()
+    Structure3DiManager(conf).start()
 
 
 if __name__ == '__main__':
