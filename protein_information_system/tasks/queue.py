@@ -138,7 +138,6 @@ class QueueTaskInitializer(BaseTaskInitializer):
             except Exception as e:
                 self.logger.error("Post-processing hook failed: %s", e, exc_info=True)
 
-
     def start_workers(self):
         """
         Start worker processes for task computing and database insertion.
