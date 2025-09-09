@@ -112,24 +112,32 @@ class QueueTaskInitializer(BaseTaskInitializer):
 
     def start(self):
         """
-        Start the task processing pipeline.
+        Start the task processing pipeline:
+        - Initialize RabbitMQ
+        - Enqueue tasks
+        - Launch workers and wait for completion
+        - Run post-processing hook
         """
         self.logger.info("Starting the task processing pipeline.")
         try:
             self.setup_rabbitmq()
-            self.logger.info("RabbitMQ set up. Now enqueueing tasks...")
+            self.logger.info("RabbitMQ set up. Enqueueing tasks…")
             self.enqueue()
-            self.logger.info("Tasks enqueued. Starting workers...")
+            self.logger.info("Tasks enqueued. Starting workers…")
             self.start_workers()
+            self.logger.info("All workers finished. Running post-processing hook…")
         except Exception as e:
-            self.logger.error(
-                f"Error in task processing pipeline: {e}",
-                exc_info=True
-            )
+            self.logger.error("Error in task processing pipeline: %s", e, exc_info=True)
             raise
         finally:
             self.stop_event.set()
             self.logger.info("Stop event has been set.")
+            try:
+                self.post_processing()
+                self.logger.info("Post-processing hook completed.")
+            except Exception as e:
+                self.logger.error("Post-processing hook failed: %s", e, exc_info=True)
+
 
     def start_workers(self):
         """
@@ -420,3 +428,11 @@ class QueueTaskInitializer(BaseTaskInitializer):
                     )
             except requests.RequestException as e:
                 self.logger.error(f"Error deleting queue '{queue_name}': {e}")
+
+    def post_processing(self) -> None:
+        """
+        Finalization hook executed after all workers have finished and queues are drained.
+        Subclasses may override to run post-processing steps (e.g., consolidations, reports).
+        Default: no-op.
+        """
+        pass
