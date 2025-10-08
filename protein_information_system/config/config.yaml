@@ -3,7 +3,7 @@
 # ==============================
 
 # Maximum number of worker threads for parallel processing.
-max_workers: 10
+max_workers: 1
 
 # Path to binary files for alignment algorithms.
 binaries_path: '../binaries'
@@ -43,7 +43,7 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # ==========================
 
 # Maximum number of items to process (for debugging).
-limit_execution: 0 # False for complete run.
+limit_execution: 200 # False for complete run.
 
 # Reset queues with each execution.
 delete_queues: True

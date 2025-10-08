@@ -35,12 +35,12 @@ def main(config_path='config/config.yaml'):
     check_services(conf, logger)
 
     # Step 3: Run components
-    GOAnnotationsQueueProcessor(conf).start()
+    #GOAnnotationsQueueProcessor(conf).start()
     AccessionManager(conf).fetch_accessions_from_api()
-    AccessionManager(conf).load_accessions_from_csv()
+    #AccessionManager(conf).load_accessions_from_csv()
     UniProtExtractor(conf).start()
     PDBExtractor(conf).start()
-    SequenceEmbeddingManager(conf).start()
+    #SequenceEmbeddingManager(conf).start()
     Structure3DiManager(conf).start()
 
 

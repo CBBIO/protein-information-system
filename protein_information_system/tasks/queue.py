@@ -140,45 +140,54 @@ class QueueTaskInitializer(BaseTaskInitializer):
 
     def start_workers(self):
         """
-        Start worker processes for task computing and database insertion.
+        Start threaded workers for task computing and database insertion.
         """
-        self.logger.info("Starting computing and inserting workers.")
+        self.logger.info("Starting threaded computing and inserting workers.")
         try:
+            # Evento compartido para detener todos los hilos
+            self.stop_event = threading.Event()
+
+            # Lanzar hilos de computación
             for i in range(self.conf['max_workers']):
-                p = multiprocessing.Process(
+                t = threading.Thread(
                     target=self.run_processor_worker,
-                    args=(self.stop_event,)
+                    args=(self.stop_event,),
+                    name=f"ProcessorWorker-{i+1}"
                 )
-                p.start()
-                self.processes.append(p)
-                self.logger.info(f"Started computing worker {i + 1}.")
+                t.start()
+                self.threads.append(t)
+                self.logger.info(f"Started computing thread {i + 1}.")
 
-            p = multiprocessing.Process(
+            # Hilo para inserción en base de datos
+            inserter_thread = threading.Thread(
                 target=self.run_db_inserter_worker,
-                args=(self.stop_event,)
+                args=(self.stop_event,),
+                name="DBInserterWorker"
             )
-            p.start()
-            self.processes.append(p)
-            self.logger.info("Started database insertion worker.")
+            inserter_thread.start()
+            self.threads.append(inserter_thread)
+            self.logger.info("Started database insertion thread.")
 
-            monitor_thread = threading.Thread(target=self.monitor_queues)
+            # Hilo para monitorización
+            monitor_thread = threading.Thread(
+                target=self.monitor_queues,
+                name="QueueMonitor"
+            )
             monitor_thread.start()
             self.threads.append(monitor_thread)
             self.logger.info("Started queue monitoring thread.")
 
-            for proc in self.processes:
-                proc.join()
-                self.logger.info("A worker process has finished.")
-        except Exception as e:
-            self.logger.error(
-                f"Error during worker execution: {e}",
-                exc_info=True
-            )
-        finally:
-            self.stop_event.set()
+            # Esperar a que terminen los hilos
             for t in self.threads:
                 t.join()
-            self.logger.info("All workers and threads have been stopped.")
+                self.logger.info(f"Thread {t.name} has finished.")
+
+        except Exception as e:
+            self.logger.error(f"Error during thread execution: {e}", exc_info=True)
+
+        finally:
+            self.stop_event.set()
+            self.logger.info("All threads have been stopped.")
 
     def run_processor_worker(self, stop_event):
         """
