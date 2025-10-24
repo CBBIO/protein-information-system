@@ -82,7 +82,6 @@ def embedding_task(
     if layer_index_list is None:
         layer_index_list = [0]  # default: export last layer
 
-    # ✅ Obtener el nombre del modelo directamente
     model_name = getattr(model, "name_or_path", "").lower()
     use_aa2fold = "prostt5" in model_name  # solo activado si el modelo es ProSTT5
 
