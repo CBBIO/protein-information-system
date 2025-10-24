@@ -82,6 +82,10 @@ def embedding_task(
     if layer_index_list is None:
         layer_index_list = [0]  # default: export last layer
 
+    # ✅ Obtener el nombre del modelo directamente
+    model_name = getattr(model, "name_or_path", "").lower()
+    use_aa2fold = "prostt5" in model_name  # solo activado si el modelo es ProSTT5
+
     embedding_records = []
 
     # Pre-tokenization normalization:
@@ -91,7 +95,7 @@ def embedding_task(
         {
             "sequence_id": seq["sequence_id"],
             "processed_sequence": (
-                "<AA2fold> " + " ".join(list(re.sub(r"[UZOB]", "X", seq["sequence"])))
+                (("<AA2fold> " if use_aa2fold else "") + " ".join(list(re.sub(r"[UZOB]", "X", seq["sequence"]))))
                 if seq["sequence"].isupper()
                 else "<fold2AA> " + " ".join(list(seq["sequence"]))
             )
