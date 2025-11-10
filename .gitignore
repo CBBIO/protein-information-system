@@ -120,3 +120,8 @@ cython_debug/
 # Others
 .idea/
 poetry.lock
+*.sql
+*.dump
+biodata_complete_dump.sql
+generate_missing_embeddings_csv.py
+
