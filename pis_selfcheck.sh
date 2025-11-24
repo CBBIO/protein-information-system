@@ -22,10 +22,34 @@ fi
 
 echo "✅ Docker is active."
 
+# Function to kill orphaned docker-proxy processes on specific ports
+kill_orphaned_docker_processes() {
+  local port=$1
+  local service_name=$2
+  
+  # Check if port is in use by docker-proxy
+  local pids=$(lsof -ti :$port 2>/dev/null | grep -v "^$" || true)
+  
+  if [ -n "$pids" ]; then
+    # Check if any of these PIDs are docker-proxy processes
+    for pid in $pids; do
+      local process_name=$(ps -p $pid -o comm= 2>/dev/null || true)
+      if [ "$process_name" = "docker-proxy" ]; then
+        echo "⚙️  Killing orphaned docker-proxy process (PID: $pid) on port $port for $service_name..."
+        sudo kill $pid 2>/dev/null || true
+      fi
+    done
+    # Give a moment for processes to clean up
+    sleep 1
+  fi
+}
+
 # PostgreSQL (pgvector)
 echo "🔍 Checking pgvector container..."
 if ! docker ps -a --format '{{.Names}}' | grep -q '^pgvectorsql$'; then
   echo "⚙️  Creating new pgvector container..."
+  # Clean up any orphaned processes on PostgreSQL port
+  kill_orphaned_docker_processes 5432 "PostgreSQL"
   docker run -d --name pgvectorsql \
     -e POSTGRES_USER=usuario \
     -e POSTGRES_PASSWORD=clave \
@@ -36,6 +60,8 @@ else
   STATUS=$(docker inspect -f '{{.State.Status}}' pgvectorsql)
   if [ "$STATUS" != "running" ]; then
     echo "⚙️  Restarting pgvector container..."
+    # Clean up any orphaned processes before restarting
+    kill_orphaned_docker_processes 5432 "PostgreSQL"
     docker start pgvectorsql
   else
     echo "✅ pgvector is running."
@@ -46,6 +72,9 @@ fi
 echo "🔍 Checking RabbitMQ container..."
 if ! docker ps -a --format '{{.Names}}' | grep -q '^rabbitmq$'; then
   echo "⚙️  Creating new RabbitMQ container..."
+  # Clean up any orphaned processes on RabbitMQ ports
+  kill_orphaned_docker_processes 5672 "RabbitMQ"
+  kill_orphaned_docker_processes 15672 "RabbitMQ Management"
   docker run -d --name rabbitmq \
     -p 5672:5672 \
     -p 15672:15672 \
@@ -54,6 +83,9 @@ else
   STATUS=$(docker inspect -f '{{.State.Status}}' rabbitmq)
   if [ "$STATUS" != "running" ]; then
     echo "⚙️  Restarting RabbitMQ container..."
+    # Clean up any orphaned processes before restarting
+    kill_orphaned_docker_processes 5672 "RabbitMQ"
+    kill_orphaned_docker_processes 15672 "RabbitMQ Management"
     docker start rabbitmq
   else
     echo "✅ RabbitMQ is running."
