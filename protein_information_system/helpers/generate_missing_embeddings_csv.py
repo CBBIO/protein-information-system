@@ -51,7 +51,7 @@ def generate_missing_embeddings_csv():
             for row in results:
                 writer.writerow(row)
         
-        print(f"✅ CSV generated successfully!")
+        print("✅ CSV generated successfully!")
         print(f"📊 Total proteins processed: {len(results)}")
         
         # Print summary statistics
@@ -62,7 +62,7 @@ def generate_missing_embeddings_csv():
             ankh3_count = sum(1 for row in results if row[4] == 1)
             esm3c_count = sum(1 for row in results if row[5] == 1)
             
-            print(f"\n📈Embedding Statistics:")
+            print("\n📈Embedding Statistics:")
             print(f"ESM: {esm_count}/{len(results)} ({esm_count/len(results)*100:.1f}%)")
             print(f"Prot-T5: {prott5_count}/{len(results)} ({prott5_count/len(results)*100:.1f}%)")
             print(f"Prost-T5: {prostt5_count}/{len(results)} ({prostt5_count/len(results)*100:.1f}%)")
