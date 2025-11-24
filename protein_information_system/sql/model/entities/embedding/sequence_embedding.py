@@ -1,6 +1,9 @@
 from pgvector.sqlalchemy import HALFVEC
-from sqlalchemy import Column, Integer, String, ForeignKey, ARRAY, DateTime, func
 from sqlalchemy.orm import relationship, mapped_column
+from sqlalchemy import (
+    Column, Integer, String, ForeignKey, ARRAY, DateTime, func,
+    UniqueConstraint, Index
+)
 
 from protein_information_system.sql.model.core.base import Base
 
@@ -33,12 +36,19 @@ class SequenceEmbedding(Base):
 
     id = Column(Integer, primary_key=True)
     sequence_id = Column(Integer, ForeignKey('sequence.id'), nullable=False)
-    embedding_type_id = Column(Integer, ForeignKey('sequence_embedding_type.id'))
-    embedding = mapped_column(HALFVEC())  # ✔️ correcto
+    embedding_type_id = Column(Integer, ForeignKey('sequence_embedding_type.id'), nullable=False)
+    layer_index = Column(Integer, nullable=False)
+    embedding = mapped_column(HALFVEC(), nullable=False)
     shape = Column(ARRAY(Integer))
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    # Relaciones existentes
     sequence = relationship("Sequence")
     embedding_type = relationship("SequenceEmbeddingType")
+
+    __table_args__ = (
+        UniqueConstraint('sequence_id', 'embedding_type_id', 'layer_index',
+                         name='uq_seqemb_seq_type_layer'),
+        Index('ix_seqemb_seq', 'sequence_id'),
+        Index('ix_seqemb_type', 'embedding_type_id'),
+    )

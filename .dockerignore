@@ -8,13 +8,17 @@ __pycache__/
 *.swp
 *.swo
 .DS_Store
+.venv
+.git
+.mypy_cache/
+.pytest_cache/
+.tmp*
 
 # Carpetas pesadas
 ~/data/
 protein_information_system/~/data/
 data/
 logs/
-binaries/
 docs/build/
 docs/source/_static/
 docs/source/deployment/
@@ -25,11 +29,9 @@ docs/source/operation/
 .git/
 .idea/
 .vscode/
-.pytest_cache/
 coverage.xml
 htmlcov/
 .cache/
-.mypy_cache/
 .tox/
 
 # Tests y notebooks (si no necesarios en prod)

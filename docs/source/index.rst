@@ -45,6 +45,7 @@ Extraction
 
    operation/extraction/accessions
    operation/extraction/uniprot
+   operation/extraction/protein_annotation_files
 
 - `Accession Management <operation/extraction/accessions.html>`_: Manages the loading and processing of biological accession codes, ensuring data is correctly organized for subsequent analysis.
 - `UniProt Extraction <operation/extraction/uniprot.html>`_: Handles the downloading and processing of detailed protein information from UniProt, enriching the database with accurate and up-to-date data.

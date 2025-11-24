@@ -13,7 +13,7 @@ from protein_information_system.sql.model.entities.protein.protein import Protei
 from protein_information_system.sql.model.entities.sequence.sequence import Sequence
 from protein_information_system.sql.model.entities.structure.structure import Structure
 
-@pytest.mark.order(2)
+@pytest.mark.order(3)
 class TestUniProtExtractor(unittest.TestCase):
 
     def setUp(self):

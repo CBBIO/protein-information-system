@@ -43,7 +43,7 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # ==========================
 
 # Maximum number of items to process (for debugging).
-limit_execution: 30 # False for complete run.
+limit_execution: 0 # False for complete run.
 
 # Reset queues with each execution.
 delete_queues: True
@@ -61,7 +61,7 @@ tag: 'METAMORPH' # Identifier tag for accession loading.
 load_accesion_csv: ../data/sample.csv
 
 # Column name in the CSV file.
-load_accesion_column: uniprot_id
+load_accesion_column: id
 
 # 🔬 Fetch from the UniProt API.
 # Query string for UniProt search.
@@ -83,6 +83,10 @@ data_directory: "~/data"
 # File extension
 file_format: "mmCif"
 
+# === CAFA input files ===
+goa_annotations_file: "../data/train_terms.tsv"       # Ruta al archivo CAFA TSV
+goa_sequences_fasta: "../data/train_sequences.fasta"      # Ruta al archivo FASTA con las secuencias
+
 
 # ===========================
 # 🚀 Operations Configuration
@@ -99,24 +103,53 @@ embedding:
 
   models:
     ESM:
-      enabled: true
+      enabled: True
       batch_size: 1
-
-    Prost-T5:
-      enabled: true
-      batch_size: 1
-
-    Prot-T5:
-      enabled: true
-      batch_size: 1
-
-    Ankh3-Large:
-      enabled: true
-      batch_size: 1
+      layer_index: [0,1,2,3,4,5,6,7,8,9,
+                    10,11,12,13,14,15,16,17,18,19,
+                    20,21,22,23,24,25,26,27,28,29,
+                    30,31,32,33]
+      distance_threshold: 0
 
     ESM3c:
-      enabled: true
+      enabled: True
       batch_size: 1
+      layer_index: [0,1,2,3,4,5,6,7,8,9,
+                    10,11,12,13,14,15,16,17,18,19,
+                    20,21,22,23,24,25,26,27,28,29,
+                    30,31,32,33,34,35]
+      distance_threshold: 0
+
+    Ankh3-Large:
+      enabled: True
+      batch_size: 1
+      layer_index: [0,1,2,3,4,5,6,7,8,9,
+                    10,11,12,13,14,15,16,17,18,19,
+                    20,21,22,23,24,25,26,27,28,29,
+                    30,31,32,33,34,35,36,37,38,39,
+                    40,41,42,43,44,45,46,47,48]
+      distance_threshold: 0
+
+    Prot-T5:
+      enabled: True
+      batch_size: 1
+      layer_index: [0,1,2,3,4,5,6,7,8,9,
+                    10,11,12,13,14,15,16,17,18,19,
+                    20,21,22,23,24]
+      distance_threshold: 0
+
+    Prost-T5:
+      enabled: True
+      batch_size: 1
+      layer_index: [0,1,2,3,4,5,6,7,8,9,
+                    10,11,12,13,14,15,16,17,18,19,
+                    20,21,22,23,24,25,26,27,28,29,
+                    30,31,32,33,34,35,36,37,38,39,
+                    40,41,42,43,44,45,46,47,48,49]
+      distance_threshold: 0
+
+
+
 
 
 # 🧠 GO Metrics
