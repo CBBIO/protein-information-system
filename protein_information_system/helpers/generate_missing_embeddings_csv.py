@@ -62,13 +62,13 @@ def generate_missing_embeddings_csv():
             ankh3_count = sum(1 for row in results if row[4] == 1)
             esm3c_count = sum(1 for row in results if row[5] == 1)
             
-            print(f"\n📈 Embedding Statistics:")
+            print(f"\n📈Embedding Statistics:")
             print(f"ESM: {esm_count}/{len(results)} ({esm_count/len(results)*100:.1f}%)")
             print(f"Prot-T5: {prott5_count}/{len(results)} ({prott5_count/len(results)*100:.1f}%)")
             print(f"Prost-T5: {prostt5_count}/{len(results)} ({prostt5_count/len(results)*100:.1f}%)")
             print(f"Ankh3-Large: {ankh3_count}/{len(results)} ({ankh3_count/len(results)*100:.1f}%)")
             print(f"ESM3c: {esm3c_count}/{len(results)} ({esm3c_count/len(results)*100:.1f}%)")
-        
+
     except Exception as e:
         print(f"❌ Error: {e}")
     finally:
@@ -76,6 +76,7 @@ def generate_missing_embeddings_csv():
             cur.close()
         if 'conn' in locals():
             conn.close()
+
 
 if __name__ == "__main__":
     generate_missing_embeddings_csv()
