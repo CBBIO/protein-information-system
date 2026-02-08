@@ -32,23 +32,37 @@ The primary goal of PIS is to provide a robust framework for large-scale protein
 
 ---
 
-## **Prerequisites**
+## **📡 Installing the BioData Lookup Table (Two Options)**
 
-- Python 3.10
-- RabbitMQ
-- PostgreSQL with pgVector extension installed.
-- PSQL client 16
+This guide shows two ways to load and use the **BioData** lookup table:
+
+1. **Option A** - Manually download the PostgreSQL backup from **Zenodo** and restore it yourself (no PIS required).
+2. **Option B** - Clone the **Protein Information System (PIS)** repository and let its helper script set everything up.
+
+Both options end with the same result: a PostgreSQL database called `BioData` running with the `pgvector` extension enabled.
 
 ---
 
-## **Setup Instructions**
+## 📚 Prerequisites
 
-### 1. Install Docker
-Ensure Docker is installed on your system. If it’s not, you can download it from [here](https://docs.docker.com/get-docker/).
+- A machine with:
+        - Docker installed and running.
+        - At least ~25-30 GB of free disk space (the backup itself is large).
+- PostgreSQL client tools installed on your host:
+        - `psql`, `createdb`, `dropdb`, `pg_restore`
+        - Recommended: PostgreSQL 16+ client tools.
+- Credentials used in this guide:
+        - PostgreSQL user: `usuario`
+        - PostgreSQL password: `clave`
+        - Database name: `BioData`
 
-### 2. Starting Required Services
+> Adjust credentials if you use different ones.
 
-Ensure PostgreSQL and RabbitMQ services are running.
+---
+
+## Option A - Manual Setup from Zenodo (without PIS)
+
+### 1. Start the pgvector PostgreSQL container
 
 ```bash
 docker run -d --name pgvectorsql \
@@ -56,28 +70,191 @@ docker run -d --name pgvectorsql \
     -e POSTGRES_PASSWORD=clave \
     -e POSTGRES_DB=BioData \
     -p 5432:5432 \
-    pgvector/pgvector:pg16 
+    pgvector/pgvector:pg16
 ```
 
+This starts PostgreSQL with pgvector on `localhost:5432`.
 
-### 4. (Optional) Connect to the Database
+---
 
-You can use **pgAdmin 4**, a graphical interface for managing and interacting with PostgreSQL databases, or any other SQL client.
+### 2. Download the BioData backup from Zenodo
 
-### 5. Set Up RabbitMQ
-
-Start a RabbitMQ container using the command below:
+1. Open the Zenodo record in your browser, for example:
+        - Final-layer table: `https://zenodo.org/records/17795871`
+        - Early+final layers table: `https://zenodo.org/records/17793273`
+2. In the **Files** section, locate the `.backup` file you want, e.g.:
+        - `BioData_Dec25_esm2_prott5_prostt5_ankh3_large_esm3c_Layer0.backup`
+        - or
+        - `BioData_Dec25_esm2_prott5_prostt5_ankh3_large_esm3c_Layers_3Frist_3Last.backup`
+3. Click **Download** and **save the file** to a known location, for example:
 
 ```bash
-docker run -d --name rabbitmq \
-    -p 15672:15672 \
-    -p 5672:5672 \
-    rabbitmq:management
+~/biodata_backups/BioData_Dec25_esm2_prott5_prostt5_ankh3_large_esm3c_Layers_3Frist_3Last.backup
 ```
 
-### 6. (Optional) Manage RabbitMQ
+> Do this via the browser to avoid Zenodo's cookie/redirect issues. The file should be multi-GB in size, not a few KB.
 
-Once RabbitMQ is running, you can access its management interface at [RabbitMQ Management Interface](http://localhost:15672/#/queues).
+---
+
+### 3. Drop and recreate the BioData database
+
+On your host, using the PostgreSQL client tools (connecting to the Docker container):
+
+```bash
+export PGPASSWORD="clave"
+
+# 1) Try to drop the database if it exists
+dropdb -h localhost -U usuario BioData --if-exists
+
+# 2) If there are still active connections, terminate them
+psql -h localhost -U usuario -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'BioData' AND pid <> pg_backend_pid();"
+
+dropdb -h localhost -U usuario BioData --if-exists
+
+# 3) Final termination attempt (if needed) and drop
+psql -h localhost -U usuario -d postgres \
+    -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'BioData';"
+
+sleep 2
+dropdb -h localhost -U usuario BioData --if-exists
+
+# 4) Recreate BioData
+createdb -h localhost -U usuario BioData
+```
+
+---
+
+### 4. Enable pgvector extension
+
+```bash
+psql -h localhost -U usuario -d BioData \
+    -c "CREATE EXTENSION IF NOT EXISTS vector;"
+```
+
+---
+
+### 5. Restore the BioData backup
+
+```bash
+export PGPASSWORD="clave"
+
+pg_restore -h localhost -U usuario \
+    -d BioData \
+    ~/biodata_backups/BioData_Dec25_esm2_prott5_prostt5_ankh3_large_esm3c_Layers_3Frist_3Last.backup
+```
+
+If restore succeeds, you now have the BioData database ready to use.
+
+---
+
+### 6. Connecting to BioData
+
+- Using `psql`:
+
+```bash
+PGPASSWORD="clave" psql -h localhost -U usuario -d BioData
+```
+
+- Typical connection URL for applications:
+
+```
+postgresql://usuario:clave@localhost:5432/BioData
+```
+
+Use this string in your tools, notebook, or pipeline that needs to query the lookup table.
+
+---
+
+## Option B - Using the PIS Repository and Helper Script
+
+If you also want the **Protein Information System** (PIS) and its automation around the database, use this method.
+
+### 1. Clone the repository
+
+```bash
+cd /path/where/you/want/the/repo
+git clone https://github.com/CBBIO/protein-information-system.git
+cd protein-information-system
+```
+
+---
+
+### 2. Set the Zenodo URL in pis_launcher_script.sh
+
+At the top of pis_launcher_script.sh, set:
+
+```bash
+ZENODO_URL="https://zenodo.org/records/17793273/files/BioData_Dec25_esm2_prott5_prostt5_ankh3_large_esm3c_Layers_3Frist_3Last.backup?download=1"
+```
+
+(or the URL of the specific `.backup` you want from the **Files** section.)
+
+The script will:
+
+- Derive the filename from this URL.
+- Download to the configured backup folder if it does not exist.
+- Reuse the local file on subsequent runs (no re-download).
+
+---
+
+### 3. Run the self-check with rebase from Zenodo
+
+From the repository root:
+
+```bash
+bash pis_launcher_script.sh --rebase-from-zenodo
+```
+
+This script will:
+
+1. Check that Docker is running.
+2. Ensure the `pgvectorsql` container (PostgreSQL + pgvector) and `rabbitmq` container exist and are running.
+3. Download the BioData backup from Zenodo (or reuse the existing file in the configured backup folder).
+4. **Drop and recreate** the `BioData` database on `localhost:5432`.
+5. Enable the `vector` extension.
+6. Run `pg_restore` from the downloaded backup.
+
+If the size check fails (file looks too small), it will stop and tell you to correct `ZENODO_URL` or manually download the backup into the configured backup folder.
+
+> With `--rebase-from-zenodo`, the script focuses on the DB rebase and then exits, so you get a clean BioData database ready to use.
+
+---
+
+### Script Options
+
+Common flags for `pis_launcher_script.sh`:
+
+- `--rebase-from-zenodo`: Download (or reuse) the Zenodo backup and restore it.
+- `--rebase-from-backup`: Restore from a local backup file.
+- `--zenodo-url=...`: Override the Zenodo URL used for download.
+- `--backup-folder=...`: Folder where backups are stored/loaded.
+- `--backup-file-name=...`: Backup filename to use inside the backup folder.
+- `--database-name=...`: Target database name (default: `BioData`).
+- `--check-services` or `--check-services-only`: Only check Docker and container status without a restore.
+
+---
+
+### 4. Use the database
+
+After the script completes successfully:
+
+- Connect with `psql` as in Option A:
+
+```bash
+PGPASSWORD="clave" psql -h localhost -U usuario -d BioData
+```
+
+- Or point your applications to:
+
+```
+postgresql://usuario:clave@localhost:5432/BioData
+```
+
+PIS itself can then use this database for its embedding and lookup workflows.
+
+---
+
+If you want, I can also draft a short "Troubleshooting" section for Notion (e.g. `pg_restore` version issues, port conflicts on 5432, etc.).
 
 ---
 
