@@ -41,6 +41,9 @@ class DatabaseManager:
             max_overflow=0,
             poolclass=QueuePool,
             pool_pre_ping=True,
+            # Always talk UTF-8. A cluster created under LC_ALL=C is SQL_ASCII, and
+            # psycopg2 would otherwise decode every text column as ASCII.
+            connect_args={"client_encoding": "utf8"},
         )
 
         ensure_pgvector_extension(engine)

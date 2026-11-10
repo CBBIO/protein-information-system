@@ -144,6 +144,7 @@ class GPUTaskInitializer(QueueTaskInitializer):
                     self.run_processor_worker_sequential(model)
 
             db_inserter_process.join()
+            self._check_worker_exit(db_inserter_process)
 
         finally:
             self.cleanup()

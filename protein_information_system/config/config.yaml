@@ -11,6 +11,10 @@ binaries_path: '../binaries'
 # Monitoring interval in seconds (for processes that require periodic checks).
 monitor_interval: 10 # ⚠️ IMPORTANT: Low values as 1 can cause execution problems.
 
+# Seconds to wait before retrying a failed task once. A task that fails again is
+# discarded.
+task_retry_delay: 5
+
 # Path to save logs, set False to disable the option
 log_path: '~/data/logs'
 
@@ -45,8 +49,15 @@ rabbitmq_password: guest     # RabbitMQ password for authentication.
 # Maximum number of items to process (for debugging).
 limit_execution: 0 # False for complete run.
 
-# Reset queues with each execution.
+# Delete this task's queues (and pending messages) at startup. Only the task's own
+# queues are removed; other queues on the broker are left untouched.
 delete_queues: True
+
+# Raise TaskFailuresError at the end of a stage when tasks failed and were
+# discarded, or a worker process crashed. Post-processing still runs first, so
+# partial results are written. With False (the default) the failures are only
+# logged and the next stage runs.
+fail_on_task_errors: False
 
 
 # ===================================
